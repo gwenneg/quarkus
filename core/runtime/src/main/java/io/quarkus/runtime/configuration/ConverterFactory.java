@@ -63,7 +63,7 @@ public final class ConverterFactory {
     private static Method getConverterTypeMethod() {
         try {
             return Class
-                    .forName("io.smallrye.config.SmallRyeConfigBuilder")
+                    .forName("io.smallrye.config.Converters")
                     .getDeclaredMethod("getConverterType", Class.class);
         } catch (NoSuchMethodException | ClassNotFoundException e) {
             throw reflectionFailure(e);
