@@ -6,6 +6,7 @@ import static io.quarkus.cache.runtime.NullValueConverter.toCacheValue;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -13,7 +14,9 @@ import java.util.function.Supplier;
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-public class CaffeineCache {
+import io.quarkus.cache.runtime.AbstractCache;
+
+public class CaffeineCache extends AbstractCache {
 
     private AsyncCache<Object, Object> cache;
 
@@ -50,53 +53,99 @@ public class CaffeineCache {
         cache = builder.buildAsync();
     }
 
-    public Object get(Object key, Callable<Object> valueLoader, long lockTimeout) throws Exception {
-        if (lockTimeout <= 0) {
-            return fromCacheValue(cache.synchronous().get(key, k -> new MappingSupplier(valueLoader).get()));
+    @Override
+    protected String getName() {
+        return name;
+    }
+
+    @Override
+    public CaffeineCache asCaffeineCache() {
+        return (CaffeineCache) this;
+    }
+
+    @Override
+    public <T> T get(Object key, Callable<T> valueLoader) {
+        return get(key, valueLoader, 0L);
+    }
+
+    @Override
+    public <T> T get(Object key, Callable<T> valueLoader, long lockTimeout) {
+        if (key == null) {
+            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
 
-        // The lock timeout logic starts here.
+        Object value = null;
 
-        /*
-         * If the current key is not already associated with a value in the Caffeine cache, there's no way to know if the
-         * current thread or another one started the missing value computation. The following variable will be used to
-         * determine whether or not a timeout should be triggered during the computation depending on which thread started it.
-         */
-        boolean[] isCurrentThreadComputation = { false };
-
-        CompletableFuture<Object> future = cache.get(key, (k, executor) -> {
-            isCurrentThreadComputation[0] = true;
-            return CompletableFuture.supplyAsync(new MappingSupplier(valueLoader), executor);
-        });
-
-        if (isCurrentThreadComputation[0]) {
-            // The value is missing and its computation was started from the current thread.
-            // We'll wait for the result no matter how long it takes.
-            return fromCacheValue(future.get());
+        if (lockTimeout <= 0) {
+            value = fromCacheValue(cache.synchronous().get(key, k -> new MappingSupplier(valueLoader).get()));
         } else {
-            // The value is either already present in the cache or missing and its computation was started from another thread.
-            // We want to retrieve it from the cache within the lock timeout delay.
+
+            // The lock timeout logic starts here.
+
+            /*
+             * If the current key is not already associated with a value in the Caffeine cache, there's no way to know if the
+             * current thread or another one started the missing value computation. The following variable will be used to
+             * determine whether or not a timeout should be triggered during the computation depending on which thread started
+             * it.
+             */
+            boolean[] isCurrentThreadComputation = { false };
+
+            CompletableFuture<Object> future = cache.get(key, (k, executor) -> {
+                isCurrentThreadComputation[0] = true;
+                return CompletableFuture.supplyAsync(new MappingSupplier(valueLoader), executor);
+            });
+
             try {
-                return fromCacheValue(future.get(lockTimeout, TimeUnit.MILLISECONDS));
-            } catch (TimeoutException e) {
-                // Timeout triggered! We don't want to wait any longer for the value computation and we'll simply invoke the
-                // cached method and return its result without caching it.
-                // TODO: Add statistics here to monitor the timeout.
-                return valueLoader.call();
+                if (isCurrentThreadComputation[0]) {
+                    // The value is missing and its computation was started from the current thread.
+                    // We'll wait for the result no matter how long it takes.
+                    value = fromCacheValue(future.get());
+                } else {
+                    // The value is either already present in the cache or missing and its computation was started from another thread.
+                    // We want to retrieve it from the cache within the lock timeout delay.
+                    try {
+                        value = fromCacheValue(future.get(lockTimeout, TimeUnit.MILLISECONDS));
+                    } catch (TimeoutException e) {
+                        // Timeout triggered! We don't want to wait any longer for the value computation and we'll simply invoke the
+                        // cached method and return its result without caching it.
+                        // TODO: Add statistics here to monitor the timeout.
+                        return valueLoader.call();
+                    }
+                }
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e.getCause());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
+
+        }
+
+        return cast(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T cast(Object value) {
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            throw new IllegalStateException(
+                    "An existing cached value type does not match the type returned by the loading function", e);
         }
     }
 
+    @Override
     public void invalidate(Object key) {
+        if (key == null) {
+            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
+        }
         cache.synchronous().invalidate(key);
     }
 
+    @Override
     public void invalidateAll() {
         cache.synchronous().invalidateAll();
-    }
-
-    public String getName() {
-        return name;
     }
 
     // For testing purposes only.
