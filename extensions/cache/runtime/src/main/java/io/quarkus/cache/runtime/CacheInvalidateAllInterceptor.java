@@ -7,7 +7,7 @@ import javax.interceptor.InvocationContext;
 
 import org.jboss.logging.Logger;
 
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.quarkus.cache.Cache;
 
 @CacheInvalidateAllInterceptorBinding
 @Interceptor
@@ -20,9 +20,9 @@ public class CacheInvalidateAllInterceptor extends CacheInterceptor {
     public Object intercept(InvocationContext context) throws Exception {
         for (CacheInvalidateAllInterceptorBinding binding : getInterceptorBindings(context,
                 CacheInvalidateAllInterceptorBinding.class)) {
-            CaffeineCache cache = cacheRepository.getCache(binding.cacheName());
+            Cache cache = cacheManager.getCache(binding.cacheName());
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debugf("Invalidating all entries from cache [%s]", cache.getName());
+                LOGGER.debugf("Invalidating all entries from cache [%s]", binding.cacheName());
             }
             cache.invalidateAll();
         }

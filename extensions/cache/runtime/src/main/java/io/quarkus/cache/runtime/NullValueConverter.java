@@ -18,3 +18,6 @@ public class NullValueConverter {
         return value == NullValue.INSTANCE ? null : value;
     }
 }
+
+// https://github.com/spring-projects/spring-framework/blob/master/spring-context/src/main/java/org/springframework/cache/support/AbstractValueAdaptingCache.java
+// https://github.com/spring-projects/spring-framework/blob/master/spring-context-support/src/main/java/org/springframework/cache/caffeine/CaffeineCache.java

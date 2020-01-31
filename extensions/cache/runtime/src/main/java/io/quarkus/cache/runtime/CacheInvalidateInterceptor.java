@@ -7,7 +7,7 @@ import javax.interceptor.InvocationContext;
 
 import org.jboss.logging.Logger;
 
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.quarkus.cache.Cache;
 
 @CacheInvalidateInterceptorBinding
 @Interceptor
@@ -21,12 +21,12 @@ public class CacheInvalidateInterceptor extends CacheInterceptor {
         Object key = null;
         for (CacheInvalidateInterceptorBinding binding : getInterceptorBindings(context,
                 CacheInvalidateInterceptorBinding.class)) {
+            Cache cache = cacheManager.getCache(binding.cacheName());
             if (key == null) {
-                key = buildCacheKey(binding.cacheName(), binding.cacheKeyParameterPositions(), context.getParameters());
+                key = getCacheKey(cache, binding.cacheKeyParameterPositions(), context.getParameters());
             }
-            CaffeineCache cache = cacheRepository.getCache(binding.cacheName());
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debugf("Invalidating entry with key [%s] from cache [%s]", key, cache.getName());
+                LOGGER.debugf("Invalidating entry with key [%s] from cache [%s]", key, binding.cacheName());
             }
             cache.invalidate(key);
         }
