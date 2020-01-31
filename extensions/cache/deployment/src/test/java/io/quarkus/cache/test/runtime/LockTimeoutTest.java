@@ -11,7 +11,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -19,15 +18,14 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.test.QuarkusUnitTest;
 
-public class CaffeineCacheLockTimeoutTest {
+public class LockTimeoutTest {
 
     private static final Object TIMEOUT_KEY = new Object();
     private static final Object NO_TIMEOUT_KEY = new Object();
 
     @RegisterExtension
-    static final QuarkusUnitTest TEST = new QuarkusUnitTest().setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
-            .addAsResource(new StringAsset("quarkus.cache.type=caffeine"), "application.properties")
-            .addClass(CachedService.class));
+    static final QuarkusUnitTest TEST = new QuarkusUnitTest()
+            .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class).addClass(CachedService.class));
 
     @Inject
     CachedService cachedService;
@@ -93,11 +91,11 @@ public class CaffeineCacheLockTimeoutTest {
 
         private static final String CACHE_NAME = "test-cache";
 
-        @CacheResult(cacheName = CACHE_NAME, lockTimeout = 500)
+        @CacheResult(cacheName = CACHE_NAME, lockTimeout = 1000)
         public Object cachedMethodWithLockTimeout(Object key) throws InterruptedException {
             // The following sleep is longer than the @CacheResult lockTimeout parameter value, a timeout will be triggered if
             // two concurrent calls are made at the same time.
-            Thread.sleep(1000);
+            Thread.sleep(2000);
             return new Object();
         }
 
