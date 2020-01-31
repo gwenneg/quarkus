@@ -11,8 +11,10 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
+import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.test.QuarkusUnitTest;
 
@@ -29,9 +31,14 @@ public class NoOpCacheTest {
     @Inject
     CachedService cachedService;
 
+    @CacheName(CACHE_NAME)
+    Cache cache;
+
     @Test
-    public void testAllCacheAnnotations() {
-        // STEP 1
+    public void test() throws Exception {
+
+        /*
+                // STEP 1
         // Action: @CacheResult-annotated method call.
         // Expected effect: method invoked and result not cached.
         // Verified by: STEP 2.
@@ -47,6 +54,23 @@ public class NoOpCacheTest {
         // The following methods have no effect at all, but let's check if they're running fine anyway.
         cachedService.invalidate(KEY);
         cachedService.invalidateAll();
+        */
+
+        String value1 = cachedService.cachedMethod(KEY);
+        String value2 = cachedService.cachedMethod(KEY);
+        assertTrue(value1 != value2);
+
+        String value3 = cache.get(KEY, k -> new String()).await().indefinitely();
+        assertTrue(value2 != value3);
+
+        String value4 = cache.get(KEY, k -> new String()).await().indefinitely();
+        assertTrue(value3 != value4);
+
+        // The following methods have no effect at all, but let's check if they're running fine anyway.
+        cachedService.invalidate(KEY);
+        cachedService.invalidateAll();
+        cache.invalidate(KEY).await().indefinitely();
+        cache.invalidateAll().await().indefinitely();
     }
 
     @Singleton

@@ -1,9 +1,7 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import javax.annotation.Priority;
@@ -12,6 +10,11 @@ import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
 import org.jboss.logging.Logger;
+
+import io.quarkus.cache.Cache;
+import io.quarkus.cache.CacheException;
+import io.smallrye.mutiny.TimeoutException;
+import io.smallrye.mutiny.Uni;
 
 @CacheResultInterceptorBinding
 @Interceptor
@@ -85,6 +88,14 @@ public class CacheResultInterceptor extends CacheInterceptor {
                  */
                 throw e;
             }
+        }
+    }
+
+    private Object invokeInterceptedMethod(InvocationContext context) {
+        try {
+            return context.proceed();
+        } catch (Exception e) {
+            throw new CacheException(e);
         }
     }
 }

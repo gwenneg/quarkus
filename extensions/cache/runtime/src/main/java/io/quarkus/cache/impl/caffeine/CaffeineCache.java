@@ -1,8 +1,16 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
+
+import static io.quarkus.cache.impl.NullValueConverter.fromCacheValue;
+import static io.quarkus.cache.impl.NullValueConverter.toCacheValue;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -10,6 +18,10 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.quarkus.cache.runtime.AbstractCache;
 import io.quarkus.cache.runtime.CacheException;
 import io.quarkus.cache.runtime.NullValueConverter;
+
+import io.quarkus.cache.CacheException;
+import io.quarkus.cache.impl.AbstractCache;
+import io.smallrye.mutiny.Uni;
 
 /**
  * This class is an internal Quarkus cache implementation. Do not use it explicitly from your Quarkus application. The public
@@ -66,7 +78,6 @@ public class CaffeineCache extends AbstractCache {
      * @return a {@link CompletableFuture} holding the cache value
      * @throws CacheException if an exception is thrown during the cache value computation
      */
-    @Override
     public CompletableFuture<Object> get(Object key, Function<Object, Object> valueLoader) {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
@@ -87,11 +98,28 @@ public class CaffeineCache extends AbstractCache {
         }
     }
 
+    @Override
+    public <K, V> Uni<V> get(K key, Function<K, V> valueLoader) {
+        Objects.requireNonNull(key, NULL_KEYS_NOT_SUPPORTED_MSG);
+        // We need to defer the CompletionStage eager computation.
+        return Uni.createFrom().deferred(new Supplier<Uni<V>>() {
+            @Override
+            public Uni<V> get() {
+                CompletionStage<Object> caffeineValue = get(key, valueLoader);
+                return Uni.createFrom().completionStage(caffeineValue).map(new Function<Object, V>() {
+                    @Override
+                    public V apply(Object cacheValue) {
+                        return cast(cacheValue);
+                    }
+                });
+            }
+        });
+    }
+
     private CompletableFuture<Object> unwrapCacheValueOrThrowable(CompletableFuture<Object> cacheValue) {
         return cacheValue.thenApply(new Function<Object, Object>() {
             @Override
             public Object apply(Object value) {
-                // If there's a throwable encapsulated into a CaffeineComputationThrowable, it must be rethrown.
                 if (value instanceof CaffeineComputationThrowable) {
                     Throwable cause = ((CaffeineComputationThrowable) value).getCause();
                     if (cause instanceof RuntimeException) {
@@ -100,23 +128,43 @@ public class CaffeineCache extends AbstractCache {
                         throw new CacheException(cause);
                     }
                 } else {
-                    return NullValueConverter.fromCacheValue(value);
+                    return fromCacheValue(value);
                 }
             }
         });
     }
 
-    @Override
-    public void invalidate(Object key) {
-        if (key == null) {
-            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
+    @SuppressWarnings("unchecked")
+    private <T> T cast(Object value) {
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            throw new CacheException(
+                    "An existing cached value type does not match the type returned by the value loading function", e);
         }
-        cache.synchronous().invalidate(key);
     }
 
     @Override
-    public void invalidateAll() {
-        cache.synchronous().invalidateAll();
+    public Uni<Void> invalidate(Object key) {
+        Objects.requireNonNull(key, NULL_KEYS_NOT_SUPPORTED_MSG);
+        return Uni.createFrom().item(new Supplier<Void>() {
+            @Override
+            public Void get() {
+                cache.synchronous().invalidate(key);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public Uni<Void> invalidateAll() {
+        return Uni.createFrom().item(new Supplier<Void>() {
+            @Override
+            public Void get() {
+                cache.synchronous().invalidateAll();
+                return null;
+            }
+        });
     }
 
     // For testing purposes only.

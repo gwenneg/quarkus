@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -9,7 +9,9 @@ import javax.interceptor.Interceptor.Priority;
 import javax.interceptor.InvocationContext;
 
 import io.quarkus.arc.runtime.InterceptorBindings;
+import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
+import io.quarkus.cache.CompositeCacheKey;
 
 public abstract class CacheInterceptor {
 
@@ -42,7 +44,7 @@ public abstract class CacheInterceptor {
         }
     }
 
-    protected Object getCacheKey(AbstractCache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
+    protected Object getCacheKey(Cache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
         if (methodParameterValues == null || methodParameterValues.length == 0) {
             // If the intercepted method doesn't have any parameter, then the default cache key will be used.
             return cache.getDefaultKey();

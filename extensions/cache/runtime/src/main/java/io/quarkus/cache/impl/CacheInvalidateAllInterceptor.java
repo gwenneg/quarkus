@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import javax.annotation.Priority;
 import javax.interceptor.AroundInvoke;
@@ -6,6 +6,8 @@ import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
 import org.jboss.logging.Logger;
+
+import io.quarkus.cache.Cache;
 
 @CacheInvalidateAllInterceptorBinding
 @Interceptor
@@ -18,11 +20,11 @@ public class CacheInvalidateAllInterceptor extends CacheInterceptor {
     public Object intercept(InvocationContext context) throws Exception {
         for (CacheInvalidateAllInterceptorBinding binding : getInterceptorBindings(context,
                 CacheInvalidateAllInterceptorBinding.class)) {
-            AbstractCache cache = (AbstractCache) cacheManager.getCache(binding.cacheName()).get();
+            Cache cache = cacheManager.getCache(binding.cacheName()).get();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debugf("Invalidating all entries from cache [%s]", binding.cacheName());
             }
-            cache.invalidateAll();
+            cache.invalidateAll().await().indefinitely();
         }
         return context.proceed();
     }

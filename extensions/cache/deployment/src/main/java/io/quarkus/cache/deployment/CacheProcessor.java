@@ -33,16 +33,17 @@ import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildIt
 import io.quarkus.arc.processor.AnnotationStore;
 import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.arc.processor.BuildExtension.Key;
-import io.quarkus.cache.runtime.CacheInvalidateAllInterceptor;
-import io.quarkus.cache.runtime.CacheInvalidateInterceptor;
-import io.quarkus.cache.runtime.CacheResultInterceptor;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheBuildRecorder;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
-import io.quarkus.cache.runtime.noop.NoOpCacheBuildRecorder;
+import io.quarkus.cache.impl.CacheInvalidateAllInterceptor;
+import io.quarkus.cache.impl.CacheInvalidateInterceptor;
+import io.quarkus.cache.impl.CacheResultInterceptor;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheBuildRecorder;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.impl.noop.NoOpCacheBuildRecorder;
 import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import io.quarkus.deployment.builditem.ExecutorBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 
 class CacheProcessor {

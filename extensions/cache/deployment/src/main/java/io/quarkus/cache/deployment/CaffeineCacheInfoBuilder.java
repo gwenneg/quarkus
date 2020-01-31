@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.quarkus.cache.deployment.CacheConfig.CaffeineConfig.CaffeineNamespaceConfig;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheInfo;
 
 public class CaffeineCacheInfoBuilder {
 
