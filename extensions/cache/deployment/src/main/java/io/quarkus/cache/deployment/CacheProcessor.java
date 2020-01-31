@@ -37,6 +37,7 @@ import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import io.quarkus.deployment.builditem.ExecutorBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.deployment.builditem.ManagedExecutorInitializedBuildItem;
 
@@ -78,8 +79,8 @@ class CacheProcessor {
 
     @BuildStep
     @Record(RUNTIME_INIT)
-    void recordCachesBuild(CombinedIndexBuildItem combinedIndex, BeanContainerBuildItem beanContainer, CacheConfig config,
-            CaffeineCacheBuildRecorder caffeineRecorder,
+    void recordCachesBuild(CombinedIndexBuildItem combinedIndex, ExecutorBuildItem executor,
+            BeanContainerBuildItem beanContainer, CacheConfig config, CaffeineCacheBuildRecorder caffeineRecorder,
             List<AdditionalCacheNameBuildItem> additionalCacheNames,
             Optional<ManagedExecutorInitializedBuildItem> managedExecutorInitialized) {
         Set<String> cacheNames = getCacheNames(combinedIndex.getIndex());
@@ -89,7 +90,8 @@ class CacheProcessor {
         switch (config.type) {
             case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
                 Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames, config);
-                caffeineRecorder.buildCaches(managedExecutorInitialized.isPresent(), beanContainer.getValue(), cacheInfos);
+                caffeineRecorder.buildCaches(cacheInfos, managedExecutorInitialized.isPresent(), executor.getExecutorProxy(),
+                        beanContainer.getValue());
                 break;
             default:
                 throw new DeploymentException("Unknown cache type: " + config.type);
