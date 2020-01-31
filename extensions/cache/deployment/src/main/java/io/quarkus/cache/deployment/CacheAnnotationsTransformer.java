@@ -22,9 +22,9 @@ import org.jboss.jandex.DotName;
 import org.jboss.jandex.MethodInfo;
 
 import io.quarkus.arc.processor.AnnotationsTransformer;
-import io.quarkus.cache.runtime.CacheInvalidateAllInterceptorBinding;
-import io.quarkus.cache.runtime.CacheInvalidateInterceptorBinding;
-import io.quarkus.cache.runtime.CacheResultInterceptorBinding;
+import io.quarkus.cache.impl.CacheInvalidateAllInterceptorBinding;
+import io.quarkus.cache.impl.CacheInvalidateInterceptorBinding;
+import io.quarkus.cache.impl.CacheResultInterceptorBinding;
 
 public class CacheAnnotationsTransformer implements AnnotationsTransformer {
 

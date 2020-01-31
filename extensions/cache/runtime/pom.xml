@@ -25,8 +25,8 @@
             <artifactId>quarkus-caffeine</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.microprofile.context-propagation</groupId>
-            <artifactId>microprofile-context-propagation-api</artifactId>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-mutiny</artifactId>
         </dependency>
     </dependencies>
 

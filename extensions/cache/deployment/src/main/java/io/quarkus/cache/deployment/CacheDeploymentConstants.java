@@ -8,11 +8,13 @@ import org.jboss.jandex.DotName;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheKey;
+import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
 
 public class CacheDeploymentConstants {
 
     // API annotations names.
+    public static final DotName CACHE_NAME = dotName(CacheName.class);
     public static final DotName CACHE_INVALIDATE_ALL = dotName(CacheInvalidateAll.class);
     public static final DotName CACHE_INVALIDATE_ALL_LIST = dotName(CacheInvalidateAll.List.class);
     public static final DotName CACHE_INVALIDATE = dotName(CacheInvalidate.class);

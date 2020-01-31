@@ -1,21 +1,25 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
+
+import static io.quarkus.cache.impl.NullValueConverter.fromCacheValue;
+import static io.quarkus.cache.impl.NullValueConverter.toCacheValue;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import io.quarkus.cache.runtime.CacheException;
-import io.quarkus.cache.runtime.DefaultCacheKey;
-import io.quarkus.cache.runtime.NullValueConverter;
+import io.quarkus.cache.CacheException;
+import io.quarkus.cache.impl.AbstractCache;
+import io.smallrye.mutiny.Uni;
 
-public class CaffeineCache {
-
-    public static final String NULL_KEYS_NOT_SUPPORTED_MSG = "Null keys are not supported by the Quarkus application data cache";
+public class CaffeineCache extends AbstractCache {
 
     private AsyncCache<Object, Object> cache;
 
@@ -28,8 +32,6 @@ public class CaffeineCache {
     private Duration expireAfterWrite;
 
     private Duration expireAfterAccess;
-
-    private Object defaultKey;
 
     public CaffeineCache(CaffeineCacheInfo cacheInfo, Executor executor) {
         this.name = cacheInfo.name;
@@ -56,32 +58,61 @@ public class CaffeineCache {
         cache = builder.buildAsync();
     }
 
-    public CompletableFuture<Object> get(Object key, BiFunction<Object, Executor, CompletableFuture<Object>> valueLoader) {
-        if (key == null) {
-            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
-        }
-        CompletableFuture<Object> cacheValue = cache.get(key, new BiFunction<Object, Executor, CompletableFuture<Object>>() {
+    @Override
+    protected String getName() {
+        return name;
+    }
+
+    @Override
+    public <K, V> Uni<V> get(K key, Function<K, V> valueLoader) {
+        Objects.requireNonNull(key, NULL_KEYS_NOT_SUPPORTED_MSG);
+        // We need to defer the CompletionStage eager computation.
+        return Uni.createFrom().deferred(new Supplier<Uni<V>>() {
             @Override
-            public CompletableFuture<Object> apply(Object k, Executor executor) {
-                return valueLoader.apply(k, executor).exceptionally(new Function<Throwable, Object>() {
+            public Uni<V> get() {
+                CompletionStage<Object> caffeineValue = getFromCaffeine(key, valueLoader);
+                return Uni.createFrom().completionStage(caffeineValue).map(new Function<Object, V>() {
                     @Override
-                    public Object apply(Throwable cause) {
-                        // This is required to prevent Caffeine from logging unwanted warnings.
-                        return new CaffeineComputationThrowable(cause);
-                    }
-                }).thenApply(new Function<Object, Object>() {
-                    @Override
-                    public Object apply(Object value) {
-                        return NullValueConverter.toCacheValue(value);
+                    public V apply(Object cacheValue) {
+                        return cast(cacheValue);
                     }
                 });
             }
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    private <K, V> CompletionStage<Object> getFromCaffeine(K key, Function<K, V> valueLoader) {
+        // Most of the code in this method is there to prevent Caffeine from logging unwanted warnings.
+        CompletableFuture<Object> cacheValue = cache.get(key, new BiFunction<Object, Executor, CompletableFuture<Object>>() {
+            @Override
+            public CompletableFuture<Object> apply(Object k, Executor executor) {
+                // This future is needed to prevent any exception throw during the Caffeine computation.
+                return CompletableFuture.supplyAsync(new Supplier<Object>() {
+                    @Override
+                    public Object get() {
+                        try {
+                            Object value = valueLoader.apply((K) k);
+                            return toCacheValue(value);
+                        } catch (CacheException e) {
+                            throw e;
+                        } catch (Exception e) {
+                            throw new CacheException(e);
+                        }
+                    }
+                }, executor).exceptionally(new Function<Throwable, Object>() {
+                    public Object apply(Throwable cause) {
+                        // Instead of throwing the exception, it is returned encapsulated into a normal object.
+                        return new CaffeineComputationThrowable(cause);
+                    }
+                });
+            }
+        });
+        // Now, it's time to rethrow any encapsulated exception or return the Caffeine computation result.
         return cacheValue.thenApply(new Function<Object, Object>() {
             @Override
             @SuppressWarnings("finally")
             public Object apply(Object value) {
-                // If there's a throwable encapsulated into a CaffeineComputationThrowable, it must be rethrown.
                 if (value instanceof CaffeineComputationThrowable) {
                     try {
                         // The cache entry needs to be removed from Caffeine explicitly (this would usually happen automatically).
@@ -95,25 +126,43 @@ public class CaffeineCache {
                         }
                     }
                 } else {
-                    return NullValueConverter.fromCacheValue(value);
+                    return fromCacheValue(value);
                 }
             }
         });
     }
 
-    public void invalidate(Object key) {
-        if (key == null) {
-            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
+    @SuppressWarnings("unchecked")
+    private <T> T cast(Object value) {
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            throw new CacheException(
+                    "An existing cached value type does not match the type returned by the value loading function", e);
         }
-        cache.synchronous().invalidate(key);
     }
 
-    public void invalidateAll() {
-        cache.synchronous().invalidateAll();
+    @Override
+    public Uni<Void> invalidate(Object key) {
+        Objects.requireNonNull(key, NULL_KEYS_NOT_SUPPORTED_MSG);
+        return Uni.createFrom().item(new Supplier<Void>() {
+            @Override
+            public Void get() {
+                cache.synchronous().invalidate(key);
+                return null;
+            }
+        });
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public Uni<Void> invalidateAll() {
+        return Uni.createFrom().item(new Supplier<Void>() {
+            @Override
+            public Void get() {
+                cache.synchronous().invalidateAll();
+                return null;
+            }
+        });
     }
 
     // For testing purposes only.
@@ -134,19 +183,5 @@ public class CaffeineCache {
     // For testing purposes only.
     public Duration getExpireAfterAccess() {
         return expireAfterAccess;
-    }
-
-    /**
-     * Returns the unique and immutable default key for the current cache. This key is used by the annotations caching API when
-     * a no-args method annotated with {@link io.quarkus.cache.CacheResult CacheResult} or
-     * {@link io.quarkus.cache.CacheInvalidate CacheInvalidate} is invoked.
-     * 
-     * @return default cache key
-     */
-    public Object getDefaultKey() {
-        if (defaultKey == null) {
-            defaultKey = new DefaultCacheKey(getName());
-        }
-        return defaultKey;
     }
 }

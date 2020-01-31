@@ -4,11 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.cache.runtime.CacheInterceptor;
-import io.quarkus.cache.runtime.CompositeCacheKey;
-import io.quarkus.cache.runtime.DefaultCacheKey;
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.Cache;
+import io.quarkus.cache.CompositeCacheKey;
+import io.quarkus.cache.DefaultCacheKey;
+import io.quarkus.cache.impl.CacheInterceptor;
+import io.quarkus.cache.impl.caffeine.CaffeineCache;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheInfo;
 
 public class CacheInterceptorTest {
 
@@ -21,7 +22,7 @@ public class CacheInterceptorTest {
         cacheInfo.name = "test-cache";
         CaffeineCache cache = new CaffeineCache(cacheInfo, null);
 
-        DefaultCacheKey expectedKey = new DefaultCacheKey(cache.getName());
+        DefaultCacheKey expectedKey = new DefaultCacheKey(cacheInfo.name);
         Object actualKey = getCacheKey(cache, new short[] {}, new Object[] {});
         assertEquals(expectedKey, actualKey);
     }
@@ -60,7 +61,7 @@ public class CacheInterceptorTest {
         assertEquals(expectedKey, actualKey);
     }
 
-    private Object getCacheKey(CaffeineCache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
+    private Object getCacheKey(Cache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
         return TEST_CACHE_INTERCEPTOR.getCacheKey(cache, cacheKeyParameterPositions, methodParameterValues);
     }
 
@@ -71,7 +72,7 @@ public class CacheInterceptorTest {
     // This inner class changes the CacheInterceptor#getCacheKey method visibility to public.
     private static class TestCacheInterceptor extends CacheInterceptor {
         @Override
-        public Object getCacheKey(CaffeineCache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
+        public Object getCacheKey(Cache cache, short[] cacheKeyParameterPositions, Object[] methodParameterValues) {
             return super.getCacheKey(cache, cacheKeyParameterPositions, methodParameterValues);
         }
     }

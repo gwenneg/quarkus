@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
 
 /**
  * This class is used to prevent Caffeine from logging unwanted warnings.

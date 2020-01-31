@@ -270,7 +270,7 @@ Congratulations! You just added application data caching to your Quarkus applica
 Do you want to learn more about the Quarkus application data caching abilities?
 The following sections will show you everything there is to know about it.
 
-== Caching annotations
+== Caching using annotations
 
 Quarkus offers a set of annotations that can be used in a CDI managed bean to enable caching abilities.
 
@@ -362,6 +362,18 @@ public class CachedService {
 <2> Calling this method WILL NOT invalidate values cached by the `load` method because the key elements order is different.
 <3> Calling this method WILL invalidate values cached by the `load` method because the key elements order is the same.
 <4> Calling this method WILL NOT invalidate values cached by the `load` method because the key elements order is different.
+
+== Caching using the programmatic API
+
+TODO
+
+=== Cache
+
+TODO
+
+=== CacheManager
+
+TODO
 
 == Configuring the underlying caching provider
 

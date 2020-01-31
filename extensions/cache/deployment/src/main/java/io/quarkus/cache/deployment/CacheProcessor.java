@@ -2,6 +2,7 @@ package io.quarkus.cache.deployment;
 
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS_LISTS;
+import static io.quarkus.cache.deployment.CacheDeploymentConstants.CACHE_NAME;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.CACHE_NAME_PARAM;
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 import static org.jboss.jandex.AnnotationTarget.Kind.METHOD;
@@ -11,32 +12,36 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.AnnotationTarget.Kind;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
+import io.quarkus.arc.deployment.AutoInjectAnnotationBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
 import io.quarkus.arc.processor.AnnotationStore;
 import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.arc.processor.BuildExtension.Key;
-import io.quarkus.cache.runtime.CacheInvalidateAllInterceptor;
-import io.quarkus.cache.runtime.CacheInvalidateInterceptor;
-import io.quarkus.cache.runtime.CacheResultInterceptor;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheBuildRecorder;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.impl.CacheInvalidateAllInterceptor;
+import io.quarkus.cache.impl.CacheInvalidateInterceptor;
+import io.quarkus.cache.impl.CacheResultInterceptor;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheBuildRecorder;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.impl.noop.NoOpCacheBuildRecorder;
 import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
+import io.quarkus.deployment.builditem.ExecutorBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 
 class CacheProcessor {
@@ -46,12 +51,17 @@ class CacheProcessor {
         return new FeatureBuildItem(Feature.CACHE);
     }
 
-    @BuildStep(onlyIf = CacheEnabled.class)
+    @BuildStep
+    AutoInjectAnnotationBuildItem autoInjectCacheName() {
+        return new AutoInjectAnnotationBuildItem(CACHE_NAME);
+    }
+
+    @BuildStep
     AnnotationsTransformerBuildItem annotationsTransformer() {
         return new AnnotationsTransformerBuildItem(new CacheAnnotationsTransformer());
     }
 
-    @BuildStep(onlyIf = CacheEnabled.class)
+    @BuildStep
     List<AdditionalBeanBuildItem> additionalBeans() {
         return Arrays.asList(
                 new AdditionalBeanBuildItem(CacheInvalidateAllInterceptor.class),
@@ -59,7 +69,7 @@ class CacheProcessor {
                 new AdditionalBeanBuildItem(CacheResultInterceptor.class));
     }
 
-    @BuildStep(onlyIf = CacheEnabled.class)
+    @BuildStep
     ValidationErrorBuildItem validateBeanDeployment(ValidationPhaseBuildItem validationPhase) {
         AnnotationStore annotationStore = validationPhase.getContext().get(Key.ANNOTATION_STORE);
         List<Throwable> throwables = new ArrayList<>();
@@ -75,26 +85,30 @@ class CacheProcessor {
         return new ValidationErrorBuildItem(throwables.toArray(new Throwable[0]));
     }
 
-    @BuildStep(onlyIf = CacheEnabled.class)
+    @BuildStep
     @Record(RUNTIME_INIT)
     void recordCachesBuild(CombinedIndexBuildItem combinedIndex, BeanContainerBuildItem beanContainer, CacheConfig config,
-            CaffeineCacheBuildRecorder caffeineRecorder,
-            List<AdditionalCacheNameBuildItem> additionalCacheNames) {
-        Set<String> cacheNames = getCacheNames(combinedIndex.getIndex());
-        for (AdditionalCacheNameBuildItem additionalCacheName : additionalCacheNames) {
-            cacheNames.add(additionalCacheName.getName());
-        }
-        switch (config.type) {
-            case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
-                Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames, config);
-                caffeineRecorder.buildCaches(beanContainer.getValue(), cacheInfos);
-                break;
-            default:
-                throw new DeploymentException("Unknown cache type: " + config.type);
+            CaffeineCacheBuildRecorder caffeineRecorder, NoOpCacheBuildRecorder noOpRecorder,
+            List<AdditionalCacheNameBuildItem> additionalCacheNames, ExecutorBuildItem executor) {
+        Set<String> cacheNames = getCacheNames(combinedIndex.getIndex(), additionalCacheNames);
+        validateCacheNameAnnotations(combinedIndex.getIndex(), cacheNames);
+        if (cacheNames.size() > 0) {
+            if (config.enabled) {
+                switch (config.type) {
+                    case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
+                        Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames, config);
+                        caffeineRecorder.buildCaches(beanContainer.getValue(), cacheInfos, executor.getExecutorProxy());
+                        break;
+                    default:
+                        throw new DeploymentException("Unknown cache type: " + config.type);
+                }
+            } else {
+                noOpRecorder.buildCaches(beanContainer.getValue(), cacheNames);
+            }
         }
     }
 
-    private Set<String> getCacheNames(IndexView index) {
+    private Set<String> getCacheNames(IndexView index, List<AdditionalCacheNameBuildItem> additionalCacheNames) {
         Set<String> cacheNames = new HashSet<>();
         for (DotName cacheAnnotation : API_METHODS_ANNOTATIONS) {
             for (AnnotationInstance annotation : index.getAnnotations(cacheAnnotation)) {
@@ -112,15 +126,29 @@ class CacheProcessor {
                 }
             }
         }
+        for (AdditionalCacheNameBuildItem additionalCacheName : additionalCacheNames) {
+            cacheNames.add(additionalCacheName.getName());
+        }
         return cacheNames;
     }
 
-    private static class CacheEnabled implements BooleanSupplier {
-
-        CacheConfig config;
-
-        public boolean getAsBoolean() {
-            return config.enabled;
+    private void validateCacheNameAnnotations(IndexView index, Set<String> cacheNames) {
+        for (AnnotationInstance cacheNameAnnotation : index.getAnnotations(CACHE_NAME)) {
+            AnnotationTarget target = cacheNameAnnotation.target();
+            if (target.kind() == Kind.FIELD || target.kind() == Kind.METHOD_PARAMETER) {
+                String declaringClass;
+                if (target.kind() == Kind.FIELD) {
+                    declaringClass = target.asField().declaringClass().name().toString();
+                } else {
+                    declaringClass = target.asMethodParameter().method().declaringClass().name().toString();
+                }
+                String cacheName = cacheNameAnnotation.value().asString();
+                if (!cacheNames.contains(cacheName)) {
+                    throw new DeploymentException(
+                            "A field or method parameter is annotated with @CacheName(\"" + cacheName + "\") in the "
+                                    + declaringClass + " class but there is no cache with this name in the application");
+                }
+            }
         }
     }
 }

@@ -16,9 +16,9 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.arc.processor.AnnotationsTransformer;
 import io.quarkus.cache.deployment.CacheDeploymentConstants;
-import io.quarkus.cache.runtime.CacheInvalidateAllInterceptorBinding;
-import io.quarkus.cache.runtime.CacheInvalidateInterceptorBinding;
-import io.quarkus.cache.runtime.CacheResultInterceptorBinding;
+import io.quarkus.cache.impl.CacheInvalidateAllInterceptorBinding;
+import io.quarkus.cache.impl.CacheInvalidateInterceptorBinding;
+import io.quarkus.cache.impl.CacheResultInterceptorBinding;
 
 public class SpringCacheAnnotationsTransformer implements AnnotationsTransformer {
 
