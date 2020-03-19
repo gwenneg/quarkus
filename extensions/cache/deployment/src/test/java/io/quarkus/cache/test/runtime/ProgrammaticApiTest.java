@@ -49,14 +49,14 @@ public class ProgrammaticApiTest {
         // Action: value retrieval from the cache with the same key as STEP 1.
         // Expected effect: value loader not invoked.
         // Verified by: same object reference between STEPS 1 and 2 results.
-        String value2 = cache.get(KEY_1, () -> new String()).toCompletableFuture().get();
+        String value2 = cache.get(KEY_1, () -> new String()).await().indefinitely();
         assertTrue(value1 == value2);
 
         // STEP 3
         // Action: value retrieval from the cache with a new key.
         // Expected effect: value loader invoked and result cached.
         // Verified by: STEP 4.
-        String value3 = cache.get(KEY_2, () -> new String()).toCompletableFuture().get();
+        String value3 = cache.get(KEY_2, () -> new String()).await().indefinitely();
         assertTrue(value2 != value3);
 
         // STEP 4
@@ -70,40 +70,40 @@ public class ProgrammaticApiTest {
         // Action: cache entry invalidation.
         // Expected effect: STEP 2 cache entry removed.
         // Verified by: STEP 6.
-        cache.invalidate(KEY_1).toCompletableFuture().get();
+        cache.invalidate(KEY_1).await().indefinitely();
 
         // STEP 6
         // Action: value retrieval from the cache with the same key as STEP 2.
         // Expected effect: value loader invoked because of STEP 5 and result cached.
         // Verified by: different objects references between STEPS 2 and 6 results.
-        String value6 = cache.get(KEY_1, () -> new String()).toCompletableFuture().get();
+        String value6 = cache.get(KEY_1, () -> new String()).await().indefinitely();
         assertTrue(value2 != value6);
 
         // STEP 7
         // Action: value retrieval from the cache with the same key as STEP 4.
         // Expected effect: value loader not invoked.
         // Verified by: same object reference between STEPS 4 and 7 results.
-        String value7 = cache.get(KEY_2, () -> new String()).toCompletableFuture().get();
+        String value7 = cache.get(KEY_2, () -> new String()).await().indefinitely();
         assertTrue(value4 == value7);
 
         // STEP 8
         // Action: full cache invalidation.
         // Expected effect: empty cache.
         // Verified by: STEPS 9 and 10.
-        cache.invalidateAll().toCompletableFuture().get();
+        cache.invalidateAll().await().indefinitely();
 
         // STEP 9
         // Action: same call as STEP 6.
         // Expected effect: value loader invoked because of STEP 8 and result cached.
         // Verified by: different objects references between STEPS 6 and 9 results.
-        String value9 = cache.get(KEY_1, () -> new String()).toCompletableFuture().get();
+        String value9 = cache.get(KEY_1, () -> new String()).await().indefinitely();
         assertTrue(value6 != value9);
 
         // STEP 10
         // Action: same call as STEP 7.
         // Expected effect: value loader invoked because of STEP 8 and result cached.
         // Verified by: different objects references between STEPS 7 and 10 results.
-        String value10 = cache.get(KEY_2, () -> new String()).toCompletableFuture().get();
+        String value10 = cache.get(KEY_2, () -> new String()).await().indefinitely();
         assertTrue(value7 != value10);
     }
 

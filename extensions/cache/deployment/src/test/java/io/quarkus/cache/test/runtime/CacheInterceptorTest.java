@@ -3,7 +3,6 @@ package io.quarkus.cache.test.runtime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionStage;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +10,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CompositeCacheKey;
 import io.quarkus.cache.runtime.CacheInterceptor;
 import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.smallrye.mutiny.Uni;
 
 public class CacheInterceptorTest {
 
@@ -78,17 +78,17 @@ public class CacheInterceptorTest {
         }
 
         @Override
-        public <T> CompletionStage<T> get(Object key, Callable<T> valueLoader) {
+        public <T> Uni<T> get(Object key, Callable<T> valueLoader) {
             throw new UnsupportedOperationException("This method is not tested here");
         }
 
         @Override
-        public CompletionStage<Void> invalidate(Object key) {
+        public Uni<Void> invalidate(Object key) {
             throw new UnsupportedOperationException("This method is not tested here");
         }
 
         @Override
-        public CompletionStage<Void> invalidateAll() {
+        public Uni<Void> invalidateAll() {
             throw new UnsupportedOperationException("This method is not tested here");
         }
     }

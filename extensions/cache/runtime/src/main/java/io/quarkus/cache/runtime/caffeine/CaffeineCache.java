@@ -11,6 +11,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.quarkus.cache.runtime.AbstractCache;
 import io.quarkus.cache.runtime.NullValueConverter;
+import io.smallrye.mutiny.Uni;
 
 public class CaffeineCache extends AbstractCache {
 
@@ -60,25 +61,26 @@ public class CaffeineCache extends AbstractCache {
     }
 
     @Override
-    public <T> CompletionStage<T> get(Object key, Callable<T> valueLoader) {
+    public <T> Uni<T> get(Object key, Callable<T> valueLoader) {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
-        return cache.get(key, unused -> new MappingSupplier(valueLoader).get())
+        CompletionStage<T> cacheValue = cache.get(key, unused -> new MappingSupplier(valueLoader).get())
                 .thenApply(value -> cast(NullValueConverter.fromCacheValue(value)));
+        return Uni.createFrom().completionStage(cacheValue);
     }
 
     @Override
-    public CompletionStage<Void> invalidate(Object key) {
+    public Uni<Void> invalidate(Object key) {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
-        return CompletableFuture.runAsync(() -> cache.synchronous().invalidate(key));
+        return Uni.createFrom().completionStage(CompletableFuture.runAsync(() -> cache.synchronous().invalidate(key)));
     }
 
     @Override
-    public CompletionStage<Void> invalidateAll() {
-        return CompletableFuture.runAsync(() -> cache.synchronous().invalidateAll());
+    public Uni<Void> invalidateAll() {
+        return Uni.createFrom().completionStage(CompletableFuture.runAsync(() -> cache.synchronous().invalidateAll()));
     }
 
     // For testing purposes only.
