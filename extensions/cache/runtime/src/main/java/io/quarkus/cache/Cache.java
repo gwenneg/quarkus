@@ -1,9 +1,9 @@
 package io.quarkus.cache;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionStage;
 
 import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.smallrye.mutiny.Uni;
 
 /**
  * TODO
@@ -27,19 +27,19 @@ public interface Cache {
      * @param valueLoader
      * @return
      */
-    <T> CompletionStage<T> get(Object key, Callable<T> valueLoader);
+    <T> Uni<T> get(Object key, Callable<T> valueLoader);
 
     /**
      * TODO
      * 
      * @param key
      */
-    CompletionStage<Void> invalidate(Object key);
+    Uni<Void> invalidate(Object key);
 
     /**
      * TODO
      */
-    CompletionStage<Void> invalidateAll();
+    Uni<Void> invalidateAll();
 
     /**
      * TODO

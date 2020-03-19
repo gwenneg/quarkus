@@ -3,7 +3,6 @@ package io.quarkus.cache.runtime;
 import static io.quarkus.cache.runtime.NullValueConverter.fromCacheValue;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -15,6 +14,7 @@ import javax.interceptor.InvocationContext;
 import org.jboss.logging.Logger;
 
 import io.quarkus.cache.Cache;
+import io.smallrye.mutiny.Uni;
 
 @CacheResultInterceptorBinding
 @Interceptor
@@ -34,8 +34,8 @@ public class CacheResultInterceptor extends CacheInterceptor {
         }
 
         if (binding.lockTimeout() <= 0) {
-            CompletionStage<Object> cacheValue = cache.get(key, () -> context.proceed());
-            return cacheValue.toCompletableFuture().get();
+            Uni<Object> cacheValue = cache.get(key, () -> context.proceed());
+            return cacheValue.await().indefinitely();
         } else {
 
             // The lock timeout logic starts here.
@@ -48,7 +48,7 @@ public class CacheResultInterceptor extends CacheInterceptor {
              */
             boolean[] isCurrentThreadComputation = { false };
 
-            CompletionStage<CompletableFuture<Object>> cacheValue = cache.get(key, () -> {
+            Uni<CompletableFuture<Object>> cacheValue = cache.get(key, () -> {
                 isCurrentThreadComputation[0] = true;
                 return CompletableFuture.supplyAsync(() -> {
                     try {
@@ -58,7 +58,7 @@ public class CacheResultInterceptor extends CacheInterceptor {
                     }
                 });
             });
-            CompletableFuture<Object> future = cacheValue.toCompletableFuture().get();
+            CompletableFuture<Object> future = cacheValue.await().indefinitely();
 
             if (isCurrentThreadComputation[0]) {
                 // The value is missing and its computation was started from the current thread.

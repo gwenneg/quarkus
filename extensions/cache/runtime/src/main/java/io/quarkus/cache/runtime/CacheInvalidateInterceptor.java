@@ -28,7 +28,7 @@ public class CacheInvalidateInterceptor extends CacheInterceptor {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debugf("Invalidating entry with key [%s] from cache [%s]", key, binding.cacheName());
             }
-            cache.invalidate(key).toCompletableFuture().get();
+            cache.invalidate(key).await().indefinitely();
         }
         return context.proceed();
     }
