@@ -65,7 +65,7 @@ public class CaffeineCache extends AbstractCache {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
         CompletionStage<Object> cacheValue = cache.get(key, unused -> new MappingSupplier(valueLoader).get());
-        return Uni.createFrom().completionStage(cacheValue).then(value -> cast(NullValueConverter.fromCacheValue(value)));
+        return Uni.createFrom().completionStage(cacheValue).map(value -> cast(NullValueConverter.fromCacheValue(value)));
     }
 
     @Override
