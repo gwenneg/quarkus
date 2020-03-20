@@ -2,7 +2,6 @@ package io.quarkus.cache.runtime.caffeine;
 
 import java.time.Duration;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -75,12 +74,18 @@ public class CaffeineCache extends AbstractCache {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
-        return Uni.createFrom().completionStage(CompletableFuture.runAsync(() -> cache.synchronous().invalidate(key)));
+        return Uni.createFrom().item(() -> {
+            cache.synchronous().invalidate(key);
+            return (Void) null;
+        });
     }
 
     @Override
     public Uni<Void> invalidateAll() {
-        return Uni.createFrom().completionStage(CompletableFuture.runAsync(() -> cache.synchronous().invalidateAll()));
+        return Uni.createFrom().item(() -> {
+            cache.synchronous().invalidateAll();
+            return (Void) null;
+        });
     }
 
     // For testing purposes only.
