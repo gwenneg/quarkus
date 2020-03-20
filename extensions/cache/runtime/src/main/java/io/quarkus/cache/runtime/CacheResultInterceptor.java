@@ -2,9 +2,7 @@ package io.quarkus.cache.runtime;
 
 import static io.quarkus.cache.runtime.NullValueConverter.fromCacheValue;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.time.Duration;
 
 import javax.annotation.Priority;
 import javax.interceptor.AroundInvoke;
@@ -14,6 +12,7 @@ import javax.interceptor.InvocationContext;
 import org.jboss.logging.Logger;
 
 import io.quarkus.cache.Cache;
+import io.smallrye.mutiny.TimeoutException;
 import io.smallrye.mutiny.Uni;
 
 @CacheResultInterceptorBinding
@@ -48,9 +47,9 @@ public class CacheResultInterceptor extends CacheInterceptor {
              */
             boolean[] isCurrentThreadComputation = { false };
 
-            Uni<CompletableFuture<Object>> cacheValue = cache.get(key, () -> {
+            Uni<Uni<Object>> cacheValue = cache.get(key, () -> {
                 isCurrentThreadComputation[0] = true;
-                return CompletableFuture.supplyAsync(() -> {
+                return Uni.createFrom().item(() -> {
                     try {
                         return context.proceed();
                     } catch (Exception e) {
@@ -58,17 +57,17 @@ public class CacheResultInterceptor extends CacheInterceptor {
                     }
                 });
             });
-            CompletableFuture<Object> future = cacheValue.await().indefinitely();
+            Uni<Object> future = cacheValue.await().indefinitely();
 
             if (isCurrentThreadComputation[0]) {
                 // The value is missing and its computation was started from the current thread.
                 // We'll wait for the result no matter how long it takes.
-                return fromCacheValue(future.get());
+                return fromCacheValue(future.await().indefinitely());
             } else {
                 // The value is either already present in the cache or missing and its computation was started from another thread.
                 // We want to retrieve it from the cache within the lock timeout delay.
                 try {
-                    return fromCacheValue(future.get(binding.lockTimeout(), TimeUnit.MILLISECONDS));
+                    return fromCacheValue(future.await().atMost(Duration.ofMillis(binding.lockTimeout())));
                 } catch (TimeoutException e) {
                     // Timeout triggered! We don't want to wait any longer for the value computation and we'll simply invoke the
                     // cached method and return its result without caching it.
