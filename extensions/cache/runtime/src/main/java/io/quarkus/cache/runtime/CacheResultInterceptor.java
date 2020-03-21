@@ -55,7 +55,7 @@ public class CacheResultInterceptor extends CacheInterceptor {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                });
+                }).cache();
             });
             Uni<Object> future = cacheValue.await().indefinitely();
 
