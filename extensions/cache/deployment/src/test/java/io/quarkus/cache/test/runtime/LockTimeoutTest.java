@@ -91,11 +91,11 @@ public class LockTimeoutTest {
 
         private static final String CACHE_NAME = "test-cache";
 
-        @CacheResult(cacheName = CACHE_NAME, lockTimeout = 500)
+        @CacheResult(cacheName = CACHE_NAME, lockTimeout = 1000)
         public Object cachedMethodWithLockTimeout(Object key) throws InterruptedException {
             // The following sleep is longer than the @CacheResult lockTimeout parameter value, a timeout will be triggered if
             // two concurrent calls are made at the same time.
-            Thread.sleep(1000);
+            Thread.sleep(2000);
             return new Object();
         }
 
