@@ -73,9 +73,11 @@ class SmallRyeContextPropagationProcessor {
     void build(SmallRyeContextPropagationRecorder recorder,
             BeanContainerBuildItem beanContainer,
             ExecutorBuildItem executorBuildItem,
-            BuildProducer<FeatureBuildItem> feature) {
+            BuildProducer<FeatureBuildItem> feature,
+            BuildProducer<ManagedExecutorBuildItem> managedExecutor) {
         feature.produce(new FeatureBuildItem(FeatureBuildItem.SMALLRYE_CONTEXT_PROPAGATION));
 
         recorder.configureRuntime(beanContainer.getValue(), executorBuildItem.getExecutorProxy());
+        managedExecutor.produce(new ManagedExecutorBuildItem());
     }
 }
