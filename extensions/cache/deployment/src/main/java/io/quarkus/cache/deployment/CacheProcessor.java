@@ -3,7 +3,7 @@ package io.quarkus.cache.deployment;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS_LISTS;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.CACHE_NAME_PARAM;
-import static io.quarkus.deployment.annotations.ExecutionTime.STATIC_INIT;
+import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 import static org.jboss.jandex.AnnotationTarget.Kind.METHOD;
 
 import java.util.ArrayList;
@@ -36,6 +36,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.smallrye.context.deployment.ManagedExecutorInitializedBuildItem;
 
 class CacheProcessor {
 
@@ -74,9 +75,9 @@ class CacheProcessor {
     }
 
     @BuildStep
-    @Record(STATIC_INIT)
+    @Record(RUNTIME_INIT)
     void recordCachesBuild(CombinedIndexBuildItem combinedIndex, BeanContainerBuildItem beanContainer, CacheConfig config,
-            CaffeineCacheBuildRecorder caffeineRecorder) {
+            CaffeineCacheBuildRecorder caffeineRecorder, ManagedExecutorInitializedBuildItem managedExecutorInitialized) {
         Set<String> cacheNames = getCacheNames(combinedIndex.getIndex());
         switch (config.type) {
             case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
