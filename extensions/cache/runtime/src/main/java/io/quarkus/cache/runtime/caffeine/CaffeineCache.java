@@ -31,7 +31,9 @@ public class CaffeineCache {
     public CaffeineCache(CaffeineCacheInfo cacheInfo, Executor executor) {
         this.name = cacheInfo.name;
         Caffeine<Object, Object> builder = Caffeine.newBuilder();
-        builder.executor(executor);
+        if (executor != null) {
+            builder.executor(executor);
+        }
         if (cacheInfo.initialCapacity != null) {
             this.initialCapacity = cacheInfo.initialCapacity;
             builder.initialCapacity(cacheInfo.initialCapacity);
