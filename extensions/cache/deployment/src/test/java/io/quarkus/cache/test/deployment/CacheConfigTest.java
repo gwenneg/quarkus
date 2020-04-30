@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.CacheResult;
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.quarkus.cache.impl.caffeine.CaffeineCache;
 import io.quarkus.test.QuarkusUnitTest;
 
 public class CacheConfigTest {
@@ -33,7 +33,7 @@ public class CacheConfigTest {
 
     @Test
     public void testConfig() {
-        CaffeineCache cache = cacheManager.getCache(CACHE_NAME).get().asCaffeineCache();
+        CaffeineCache cache = cacheManager.getCache(CACHE_NAME).get().asSpecializedCache(CaffeineCache.class);
         assertEquals(10, cache.getInitialCapacity());
         assertEquals(100L, cache.getMaximumSize());
         assertEquals(Duration.ofSeconds(30L), cache.getExpireAfterWrite());

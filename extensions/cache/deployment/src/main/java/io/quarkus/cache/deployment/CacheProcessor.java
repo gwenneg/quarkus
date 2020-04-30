@@ -2,6 +2,7 @@ package io.quarkus.cache.deployment;
 
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.API_METHODS_ANNOTATIONS_LISTS;
+import static io.quarkus.cache.deployment.CacheDeploymentConstants.CACHE_NAME;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.CACHE_NAME_PARAM;
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 import static org.jboss.jandex.AnnotationTarget.Kind.METHOD;
@@ -16,23 +17,26 @@ import java.util.Set;
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.AnnotationTarget.Kind;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.AnnotationsTransformerBuildItem;
+import io.quarkus.arc.deployment.AutoInjectAnnotationBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
 import io.quarkus.arc.processor.AnnotationStore;
 import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.arc.processor.BuildExtension.Key;
-import io.quarkus.cache.runtime.CacheInvalidateAllInterceptor;
-import io.quarkus.cache.runtime.CacheInvalidateInterceptor;
-import io.quarkus.cache.runtime.CacheResultInterceptor;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheBuildRecorder;
-import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.impl.CacheInvalidateAllInterceptor;
+import io.quarkus.cache.impl.CacheInvalidateInterceptor;
+import io.quarkus.cache.impl.CacheResultInterceptor;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheBuildRecorder;
+import io.quarkus.cache.impl.caffeine.CaffeineCacheInfo;
 import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
@@ -46,6 +50,11 @@ class CacheProcessor {
     @BuildStep
     FeatureBuildItem feature() {
         return new FeatureBuildItem(Feature.CACHE);
+    }
+
+    @BuildStep
+    AutoInjectAnnotationBuildItem autoInjectCacheName() {
+        return new AutoInjectAnnotationBuildItem(CACHE_NAME);
     }
 
     @BuildStep
@@ -87,6 +96,7 @@ class CacheProcessor {
         for (AdditionalCacheNameBuildItem additionalCacheName : additionalCacheNames) {
             cacheNames.add(additionalCacheName.getName());
         }
+        validateCacheNameAnnotations(combinedIndex.getIndex(), cacheNames);
         switch (config.type) {
             case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
                 Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames, config);
@@ -117,5 +127,25 @@ class CacheProcessor {
             }
         }
         return cacheNames;
+    }
+
+    private void validateCacheNameAnnotations(IndexView index, Set<String> cacheNames) {
+        for (AnnotationInstance cacheNameAnnotation : index.getAnnotations(CACHE_NAME)) {
+            AnnotationTarget target = cacheNameAnnotation.target();
+            if (target.kind() == Kind.FIELD || target.kind() == Kind.METHOD_PARAMETER) {
+                String declaringClass;
+                if (target.kind() == Kind.FIELD) {
+                    declaringClass = target.asField().declaringClass().name().toString();
+                } else {
+                    declaringClass = target.asMethodParameter().method().declaringClass().name().toString();
+                }
+                String cacheName = cacheNameAnnotation.value().asString();
+                if (!cacheNames.contains(cacheName)) {
+                    throw new DeploymentException(
+                            "A field or method parameter is annotated with @CacheName(\"" + cacheName + "\") in the "
+                                    + declaringClass + " class but there is no cache with this name in the application");
+                }
+            }
+        }
     }
 }

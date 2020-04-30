@@ -272,7 +272,7 @@ Congratulations! You just added application data caching to your Quarkus applica
 Do you want to learn more about the Quarkus application data caching abilities?
 The following sections will show you everything there is to know about it.
 
-== Caching annotations API
+== Caching using annotations
 
 Quarkus offers a set of annotations that can be used in a CDI managed bean to enable caching abilities.
 
@@ -316,15 +316,15 @@ method annotated with `@CacheResult` or `@CacheInvalidate`.
 
 This annotation is optional and should only be used when some of the method arguments are NOT part of the cache key.
 
-== Caching programmatic API
-
-TODO
-
-=== CacheManager
+== Caching using the programmatic API
 
 TODO
 
 === Cache
+
+TODO
+
+=== CacheManager
 
 TODO
 
