@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import javax.annotation.Priority;
 import javax.interceptor.AroundInvoke;

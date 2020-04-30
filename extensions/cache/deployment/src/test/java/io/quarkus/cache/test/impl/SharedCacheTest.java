@@ -1,4 +1,4 @@
-package io.quarkus.cache.test.runtime;
+package io.quarkus.cache.test.impl;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.cache.CacheInvalidateAll;
-import io.quarkus.cache.test.runtime.ImplicitSimpleKeyCacheTest.CachedService;
+import io.quarkus.cache.test.impl.ImplicitSimpleKeyCacheTest.CachedService;
 import io.quarkus.test.QuarkusUnitTest;
 
 /**

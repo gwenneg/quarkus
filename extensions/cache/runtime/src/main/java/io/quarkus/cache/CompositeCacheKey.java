@@ -18,9 +18,9 @@ public class CompositeCacheKey {
      * @throws IllegalArgumentException if less than two key elements are provided
      */
     public CompositeCacheKey(Object... keyElements) {
-        if (keyElements.length < 2) {
+        if (keyElements.length < 1) {
             throw new IllegalArgumentException(
-                    "At least two key elements are required to create a composite cache key instance");
+                    "At least one key element is required to create a composite cache key instance");
         }
         this.keyElements = keyElements;
     }

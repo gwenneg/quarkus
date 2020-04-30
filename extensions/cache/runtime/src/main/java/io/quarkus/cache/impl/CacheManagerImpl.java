@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import java.util.Collections;
 import java.util.Map;

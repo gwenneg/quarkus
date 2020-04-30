@@ -1,4 +1,4 @@
-package io.quarkus.cache.test.runtime;
+package io.quarkus.cache.test.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -8,8 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CompositeCacheKey;
-import io.quarkus.cache.runtime.CacheInterceptor;
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.quarkus.cache.impl.CacheInterceptor;
 import io.smallrye.mutiny.Uni;
 
 public class CacheInterceptorTest {
@@ -73,7 +72,7 @@ public class CacheInterceptorTest {
         }
 
         @Override
-        public CaffeineCache asCaffeineCache() {
+        public <T extends Cache> T asSpecializedCache(Class<T> cacheType) {
             throw new UnsupportedOperationException("This method is not tested here");
         }
 

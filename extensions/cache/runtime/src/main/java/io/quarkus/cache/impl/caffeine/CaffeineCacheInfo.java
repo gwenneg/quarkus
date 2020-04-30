@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
 
 import java.time.Duration;
 import java.util.Objects;

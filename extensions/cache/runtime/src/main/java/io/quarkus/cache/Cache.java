@@ -2,12 +2,11 @@ package io.quarkus.cache;
 
 import java.util.concurrent.Callable;
 
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
 import io.smallrye.mutiny.Uni;
 
 /**
- * This interface can be used to interact with a cache programmatically and store, retrieve or delete cache values.
- * Most of its operations are reactive.
+ * Use this interface to interact with a cache programmatically e.g. store, retrieve or delete cache values. The cache can be
+ * injected using the {@link CacheName} annotation or retrieved using {@link CacheManager}.
  */
 public interface Cache {
 
@@ -47,10 +46,10 @@ public interface Cache {
     Uni<Void> invalidateAll();
 
     /**
-     * Returns this cache as a {@link CaffeineCache} if possible.
+     * Returns this cache as an instance of the provided type if possible.
      *
-     * @return {@link CaffeineCache} instance
-     * @throws UnsupportedOperationException if this cache is not a {@link CaffeineCache}
+     * @return cache instance of the provided type
+     * @throws IllegalStateException if this cache is not an instance of {@code type}
      */
-    CaffeineCache asCaffeineCache();
+    <T extends Cache> T asSpecializedCache(Class<T> type);
 }

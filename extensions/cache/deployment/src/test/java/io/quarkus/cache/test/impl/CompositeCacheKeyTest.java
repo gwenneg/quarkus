@@ -1,4 +1,4 @@
-package io.quarkus.cache.test.runtime;
+package io.quarkus.cache.test.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -37,13 +37,8 @@ public class CompositeCacheKeyTest {
 
     @Test
     public void testInvalidKey() {
-
         assertThrows(IllegalArgumentException.class, () -> {
             new CompositeCacheKey();
-        });
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            new CompositeCacheKey("One key element is not enough!");
         });
     }
 }

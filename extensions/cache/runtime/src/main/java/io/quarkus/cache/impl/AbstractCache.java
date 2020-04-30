@@ -1,9 +1,8 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import java.util.Objects;
 
 import io.quarkus.cache.Cache;
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
 
 public abstract class AbstractCache implements Cache {
 
@@ -22,8 +21,13 @@ public abstract class AbstractCache implements Cache {
     }
 
     @Override
-    public CaffeineCache asCaffeineCache() {
-        throw new UnsupportedOperationException("This cache is not a Caffeine cache");
+    @SuppressWarnings("unchecked")
+    public <T extends Cache> T asSpecializedCache(Class<T> type) {
+        if (type.isInstance(this)) {
+            return (T) this;
+        } else {
+            throw new IllegalStateException("This cache is not an instance of " + type.getName());
+        }
     }
 
     private static class DefaultCacheKey {

@@ -1,7 +1,7 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
 
-import static io.quarkus.cache.runtime.NullValueConverter.fromCacheValue;
-import static io.quarkus.cache.runtime.NullValueConverter.toCacheValue;
+import static io.quarkus.cache.impl.NullValueConverter.fromCacheValue;
+import static io.quarkus.cache.impl.NullValueConverter.toCacheValue;
 
 import java.time.Duration;
 import java.util.concurrent.Callable;
@@ -11,7 +11,7 @@ import java.util.concurrent.Executor;
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import io.quarkus.cache.runtime.AbstractCache;
+import io.quarkus.cache.impl.AbstractCache;
 import io.smallrye.mutiny.Uni;
 
 public class CaffeineCache extends AbstractCache {
@@ -57,26 +57,23 @@ public class CaffeineCache extends AbstractCache {
     }
 
     @Override
-    public CaffeineCache asCaffeineCache() {
-        return (CaffeineCache) this;
-    }
-
-    @Override
     public <T> Uni<T> get(Object key, Callable<T> valueLoader) {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
-        CompletionStage<Object> cacheValueCompletionStage = cache.get(key, unused -> {
-            try {
-                return toCacheValue(valueLoader.call());
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-        return Uni.createFrom().completionStage(cacheValueCompletionStage).map(cacheValue -> {
-            return cast(fromCacheValue(cacheValue));
+        return Uni.createFrom().deferred(() -> {
+            CompletionStage<Object> cacheValueCompletionStage = cache.get(key, unused -> {
+                try {
+                    return toCacheValue(valueLoader.call());
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            return Uni.createFrom().completionStage(cacheValueCompletionStage).map(cacheValue -> {
+                return cast(fromCacheValue(cacheValue));
+            });
         });
     }
 

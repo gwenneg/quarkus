@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.impl.caffeine;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +10,7 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.arc.runtime.BeanContainer;
 import io.quarkus.cache.Cache;
-import io.quarkus.cache.runtime.CacheManagerImpl;
+import io.quarkus.cache.impl.CacheManagerImpl;
 import io.quarkus.runtime.annotations.Recorder;
 
 @Recorder

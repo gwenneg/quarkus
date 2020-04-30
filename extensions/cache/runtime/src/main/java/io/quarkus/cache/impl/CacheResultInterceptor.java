@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;

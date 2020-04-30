@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 /**
  * This class is used to allow the storage of {@code null} values in the Quarkus cache while it is forbidden by the underlying

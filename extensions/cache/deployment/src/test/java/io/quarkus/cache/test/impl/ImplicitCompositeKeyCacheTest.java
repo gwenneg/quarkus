@@ -1,4 +1,4 @@
-package io.quarkus.cache.test.runtime;
+package io.quarkus.cache.test.impl;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

@@ -5,14 +5,12 @@ import java.util.Optional;
 
 /**
  * <p>
- * Quarkus programmatic caching API entry point.
+ * Use this interface to retrieve all existing {@link Cache} names and interact with any cache programmatically e.g. store,
+ * retrieve or delete cache values. It shares the same cache collection the Quarkus caching annotations use. The
+ * {@link CacheName} annotation can also be used to inject and access a specific cache from its name.
  * </p>
  * <p>
- * This API can be used to access a {@link Cache} programmatically and store, retrieve or delete cache values. It shares the
- * same caches collection than the Quarkus annotations caching API. Most {@link Cache} operations are reactive.
- * </p>
- * <p>
- * Example code:
+ * Code example:
  * 
  * <pre>
  * {@literal @}ApplicationScoped

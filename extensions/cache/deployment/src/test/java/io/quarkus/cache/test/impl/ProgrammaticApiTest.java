@@ -1,5 +1,6 @@
-package io.quarkus.cache.test.runtime;
+package io.quarkus.cache.test.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import javax.enterprise.context.Dependent;
@@ -14,6 +15,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheManager;
+import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.test.QuarkusUnitTest;
 
@@ -33,11 +35,16 @@ public class ProgrammaticApiTest {
     @Inject
     CacheManager cacheManager;
 
+    @CacheName(CACHE_NAME)
+    Cache injectedCache;
+
     @Test
     public void test() throws Exception {
         assertTrue(cacheManager.getCacheNames().contains(CACHE_NAME));
 
         Cache cache = cacheManager.getCache(CACHE_NAME).get();
+        assertEquals(cache, injectedCache);
+        assertEquals(cache, cachedService.getCache());
 
         // STEP 1
         // Action: @CacheResult-annotated method call.
@@ -109,6 +116,16 @@ public class ProgrammaticApiTest {
 
     @Dependent
     static class CachedService {
+
+        Cache cache;
+
+        public CachedService(@CacheName(CACHE_NAME) Cache cache) {
+            this.cache = cache;
+        }
+
+        public Cache getCache() {
+            return cache;
+        }
 
         @CacheResult(cacheName = CACHE_NAME)
         public String cachedMethod(Object key) {
