@@ -67,9 +67,9 @@ public class CaffeineCache extends AbstractCache {
     public <K, V> Uni<V> get(K key, Function<K, V> valueLoader) {
         Objects.requireNonNull(key, NULL_KEYS_NOT_SUPPORTED_MSG);
         // We need to defer the CompletionStage eager computation.
-        return Uni.createFrom().deferred(new Supplier<Uni<V>>() {
+        return Uni.createFrom().deferred(new Supplier<Uni<? extends V>>() {
             @Override
-            public Uni<V> get() {
+            public Uni<? extends V> get() {
                 CompletionStage<Object> caffeineValue = getFromCaffeine(key, valueLoader);
                 return Uni.createFrom().completionStage(caffeineValue).map(new Function<Object, V>() {
                     @Override
