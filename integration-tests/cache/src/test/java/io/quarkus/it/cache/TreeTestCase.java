@@ -33,5 +33,8 @@ public class TreeTestCase {
 
         // If we try to get the same tree again, it is still returned because it was cached earlier.
         given().when().get("/trees/1").then().statusCode(200).statusCode(200).body(containsString("Oak"));
+
+        // Finally, we need to check that context propagation is working fine with the lock timeout feature.
+        given().when().get("/trees/with-lock-timeout/2").then().statusCode(200).body(containsString("Chestnut"));
     }
 }

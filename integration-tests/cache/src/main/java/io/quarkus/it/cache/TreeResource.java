@@ -31,6 +31,14 @@ public class TreeResource {
         return Tree.findById(id);
     }
 
+    @GET
+    @Path("with-lock-timeout/{id}")
+    @Transactional // This annotation is here for testing purposes.
+    @CacheResult(cacheName = "forest", lockTimeout = 1000)
+    public Tree getWithLockTimeout(@PathParam("id") Long id) {
+        return Tree.findById(id);
+    }
+
     @DELETE
     @Path("{id}")
     @Transactional

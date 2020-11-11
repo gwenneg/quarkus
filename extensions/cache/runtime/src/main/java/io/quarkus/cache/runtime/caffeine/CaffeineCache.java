@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -56,27 +57,72 @@ public class CaffeineCache {
         cache = builder.buildAsync();
     }
 
-    public CompletableFuture<Object> get(Object key, BiFunction<Object, Executor, CompletableFuture<Object>> valueLoader) {
+    /**
+     * Returns a {@link CompletableFuture} holding the cache value identified by {@code key}, obtaining that value from
+     * {@code valueLoader} if necessary. The value computation is done synchronously on the calling thread and the
+     * {@link CompletableFuture} is immediately completed before being returned.
+     * 
+     * @param key cache key
+     * @param valueLoader function used to compute a cache value if {@code key} is not already associated with a value
+     * @return a {@link CompletableFuture} holding a cache value
+     * @throws CacheException if an exception is thrown during a cache value computation
+     */
+    public CompletableFuture<Object> getWithSyncComputation(Object key, Function<Object, Object> valueLoader) {
+        if (key == null) {
+            throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
+        }
+        CompletableFuture<Object> newCacheValue = new CompletableFuture<Object>();
+        CompletableFuture<Object> existingCacheValue = cache.asMap().putIfAbsent(key, newCacheValue);
+        if (existingCacheValue == null) {
+            try {
+                Object value = valueLoader.apply(key);
+                newCacheValue.complete(NullValueConverter.toCacheValue(value));
+            } catch (CacheException e) {
+                newCacheValue.complete(new CaffeineComputationThrowable(e));
+            }
+            return rethrowThrowableOrUnwrapCacheValue(key, newCacheValue);
+        } else {
+            return rethrowThrowableOrUnwrapCacheValue(key, existingCacheValue);
+        }
+    }
+
+    /**
+     * Returns a {@link CompletableFuture} holding the cache value identified by {@code key}, obtaining that value from
+     * {@code valueLoader} if necessary. The value computation is done asynchronously using a thread from the Quarkus
+     * {@link ManagedExecutor} instance if available, or {@link java.util.concurrent.ForkJoinPool#commonPool()
+     * ForkJoinPool.commonPool()} otherwise.
+     * 
+     * @param key cache key
+     * @param valueLoader function used to compute a cache value if {@code key} is not already associated with a value
+     * @return a {@link CompletableFuture} holding a cache value
+     * @throws CacheException if an exception is thrown during a cache value computation
+     */
+    public CompletableFuture<Object> getWithAsyncComputation(Object key, Function<Object, Object> valueLoader) {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
         CompletableFuture<Object> cacheValue = cache.get(key, new BiFunction<Object, Executor, CompletableFuture<Object>>() {
             @Override
             public CompletableFuture<Object> apply(Object k, Executor executor) {
-                return valueLoader.apply(k, executor).exceptionally(new Function<Throwable, Object>() {
+                return CompletableFuture.supplyAsync(new Supplier<Object>() {
+                    @Override
+                    public Object get() {
+                        Object value = valueLoader.apply(key);
+                        return NullValueConverter.toCacheValue(value);
+                    }
+                }, executor).exceptionally(new Function<Throwable, Object>() {
                     @Override
                     public Object apply(Throwable cause) {
                         // This is required to prevent Caffeine from logging unwanted warnings.
                         return new CaffeineComputationThrowable(cause);
                     }
-                }).thenApply(new Function<Object, Object>() {
-                    @Override
-                    public Object apply(Object value) {
-                        return NullValueConverter.toCacheValue(value);
-                    }
                 });
             }
         });
+        return rethrowThrowableOrUnwrapCacheValue(key, cacheValue);
+    }
+
+    private CompletableFuture<Object> rethrowThrowableOrUnwrapCacheValue(Object key, CompletableFuture<Object> cacheValue) {
         return cacheValue.thenApply(new Function<Object, Object>() {
             @Override
             @SuppressWarnings("finally")
