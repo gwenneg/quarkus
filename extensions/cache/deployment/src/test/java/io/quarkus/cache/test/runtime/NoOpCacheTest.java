@@ -38,23 +38,23 @@ public class NoOpCacheTest {
     public void test() throws Exception {
 
         /*
-                // STEP 1
-        // Action: @CacheResult-annotated method call.
-        // Expected effect: method invoked and result not cached.
-        // Verified by: STEP 2.
-        String value1 = cachedService.cachedMethod(KEY);
-
-        // STEP 2
-        // Action: same call as STEP 1.
-        // Expected effect: method invoked and result not cached.
-        // Verified by: different objects references between STEPS 1 and 2 results.
-        String value2 = cachedService.cachedMethod(KEY);
-        assertTrue(value1 != value2);
-
-        // The following methods have no effect at all, but let's check if they're running fine anyway.
-        cachedService.invalidate(KEY);
-        cachedService.invalidateAll();
-        */
+         * // STEP 1
+         * // Action: @CacheResult-annotated method call.
+         * // Expected effect: method invoked and result not cached.
+         * // Verified by: STEP 2.
+         * String value1 = cachedService.cachedMethod(KEY);
+         * 
+         * // STEP 2
+         * // Action: same call as STEP 1.
+         * // Expected effect: method invoked and result not cached.
+         * // Verified by: different objects references between STEPS 1 and 2 results.
+         * String value2 = cachedService.cachedMethod(KEY);
+         * assertTrue(value1 != value2);
+         * 
+         * // The following methods have no effect at all, but let's check if they're running fine anyway.
+         * cachedService.invalidate(KEY);
+         * cachedService.invalidateAll();
+         */
 
         String value1 = cachedService.cachedMethod(KEY);
         String value2 = cachedService.cachedMethod(KEY);

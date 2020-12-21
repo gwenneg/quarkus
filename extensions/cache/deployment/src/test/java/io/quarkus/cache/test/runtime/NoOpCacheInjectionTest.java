@@ -15,7 +15,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.CacheName;
-import io.quarkus.cache.runtime.noop.NoOpCache;
+import io.quarkus.cache.impl.noop.NoOpCache;
 import io.quarkus.test.QuarkusUnitTest;
 
 public class NoOpCacheInjectionTest {

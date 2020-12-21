@@ -6,11 +6,17 @@ import java.util.function.Supplier;
 import io.quarkus.cache.impl.AbstractCache;
 import io.smallrye.mutiny.Uni;
 
+/**
+ * This class is an internal Quarkus cache implementation. Do not use it explicitly from your Quarkus application. The public
+ * methods signatures may change without prior notice.
+ */
 public class NoOpCache extends AbstractCache {
+
+    private static final String NAME = NoOpCache.class.getName();
 
     @Override
     protected String getName() {
-        return NoOpCache.class.getName();
+        return NAME;
     }
 
     @Override

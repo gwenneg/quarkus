@@ -3,7 +3,6 @@ package io.quarkus.cache.impl.caffeine;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executor;
 
 import org.jboss.logging.Logger;
 

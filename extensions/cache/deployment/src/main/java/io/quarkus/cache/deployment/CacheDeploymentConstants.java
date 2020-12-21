@@ -10,8 +10,8 @@ import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheKey;
 import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
-import io.quarkus.cache.runtime.CacheKeyParameterPositions;
-import io.quarkus.cache.runtime.CacheProducer;
+import io.quarkus.cache.impl.CacheKeyParameterPositions;
+import io.quarkus.cache.impl.CacheProducer;
 
 public class CacheDeploymentConstants {
 

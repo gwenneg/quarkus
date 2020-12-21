@@ -1,4 +1,4 @@
-package io.quarkus.cache.runtime;
+package io.quarkus.cache.impl;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

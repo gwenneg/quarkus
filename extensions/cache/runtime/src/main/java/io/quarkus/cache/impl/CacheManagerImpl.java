@@ -22,12 +22,12 @@ public class CacheManagerImpl implements CacheManager {
             throw new IllegalStateException("The caches map must only be set once at build time");
         }
         this.caches = Collections.unmodifiableMap(caches);
-        this.cacheNames = Collections.unmodifiableSet(caches.keySet());
+        cacheNames = Collections.unmodifiableSet(caches.keySet());
     }
 
     @Override
     public Set<String> getCacheNames() {
-        return this.cacheNames;
+        return cacheNames;
     }
 
     @Override

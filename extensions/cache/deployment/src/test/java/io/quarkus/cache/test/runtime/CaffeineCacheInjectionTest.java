@@ -14,7 +14,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.CacheName;
-import io.quarkus.cache.runtime.caffeine.CaffeineCache;
+import io.quarkus.cache.impl.caffeine.CaffeineCache;
 import io.quarkus.test.QuarkusUnitTest;
 
 public class CaffeineCacheInjectionTest {
