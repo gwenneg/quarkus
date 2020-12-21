@@ -36,7 +36,7 @@ public class CacheResultInterceptor extends CacheInterceptor {
 
             Uni<Object> cacheValue = cache.get(key, new Function<Object, Object>() {
                 @Override
-                public Object apply(Object t) {
+                public Object apply(Object k) {
                     try {
                         return context.proceed();
                     } catch (Exception e) {

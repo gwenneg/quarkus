@@ -114,6 +114,7 @@ public class CaffeineCache extends AbstractCache {
         return cacheValue.thenApply(new Function<Object, Object>() {
             @Override
             public Object apply(Object value) {
+                // If there's a throwable encapsulated into a CaffeineComputationThrowable, it must be rethrown.
                 if (value instanceof CaffeineComputationThrowable) {
                     Throwable cause = ((CaffeineComputationThrowable) value).getCause();
                     if (cause instanceof RuntimeException) {
@@ -122,20 +123,10 @@ public class CaffeineCache extends AbstractCache {
                         throw new CacheException(cause);
                     }
                 } else {
-                    return fromCacheValue(value);
+                    return NullValueConverter.fromCacheValue(value);
                 }
             }
         });
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T cast(Object value) {
-        try {
-            return (T) value;
-        } catch (ClassCastException e) {
-            throw new CacheException(
-                    "An existing cached value type does not match the type returned by the value loading function", e);
-        }
     }
 
     @Override
@@ -179,5 +170,15 @@ public class CaffeineCache extends AbstractCache {
     // For testing purposes only.
     public Duration getExpireAfterAccess() {
         return expireAfterAccess;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T cast(Object value) {
+        try {
+            return (T) value;
+        } catch (ClassCastException e) {
+            throw new CacheException(
+                    "An existing cached value type does not match the type returned by the value loading function", e);
+        }
     }
 }
