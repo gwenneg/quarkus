@@ -272,9 +272,7 @@ public class WebJarUtil {
 
     private static void createFile(InputStream source, Path targetFile) throws IOException {
         FileLock lock = null;
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(targetFile.toString());
+        try (FileOutputStream fos = new FileOutputStream(targetFile.toString())) {
             FileChannel channel = fos.getChannel();
             lock = channel.tryLock();
             if (lock != null) {
@@ -283,9 +281,6 @@ public class WebJarUtil {
         } finally {
             if (lock != null) {
                 lock.release();
-            }
-            if (fos != null) {
-                fos.close();
             }
         }
     }
