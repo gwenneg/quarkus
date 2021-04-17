@@ -14,6 +14,7 @@ import javax.interceptor.InvocationContext;
 import org.jboss.logging.Logger;
 
 import io.quarkus.cache.CacheResult;
+import io.smallrye.mutiny.Uni;
 
 @CacheResult(cacheName = "") // The `cacheName` attribute is @Nonbinding.
 @Interceptor
@@ -47,26 +48,40 @@ public class CacheResultInterceptor extends CacheInterceptor {
                 @Override
                 public Object apply(Object k) {
                     try {
-                        return invocationContext.proceed();
+                        Object invocationResult = invocationContext.proceed();
+                        if (invocationResult instanceof Uni) {
+                            LOGGER.debugf("Adding UncomputedUniValue entry with key [%s] into cache [%s]", key,
+                                    cache.getName());
+                            return new UncomputedUniValue((Uni<Object>) invocationResult);
+                        } else {
+                            return invocationResult;
+                        }
                     } catch (Exception e) {
                         throw new CacheException(e);
                     }
                 }
             });
 
+            Object value;
             if (binding.lockTimeout() <= 0) {
-                return cacheValue.get();
+                value = cacheValue.get();
             } else {
                 try {
                     /*
                      * If the current thread started the cache value computation, then the computation is already finished since
                      * it was done synchronously and the following call will never time out.
                      */
-                    return cacheValue.get(binding.lockTimeout(), TimeUnit.MILLISECONDS);
+                    value = cacheValue.get(binding.lockTimeout(), TimeUnit.MILLISECONDS);
                 } catch (TimeoutException e) {
                     // TODO: Add statistics here to monitor the timeout.
                     return invocationContext.proceed();
                 }
+            }
+
+            if (Uni.class.isAssignableFrom(invocationContext.getMethod().getReturnType())) {
+                return unwrapUniValue(cache, key, value);
+            } else {
+                return value;
             }
 
         } catch (ExecutionException e) {
@@ -91,6 +106,17 @@ public class CacheResultInterceptor extends CacheInterceptor {
                 // The ExecutionException does not have a cause (very unlikely case).
                 throw e;
             }
+        }
+    }
+
+    private Object unwrapUniValue(AbstractCache cache, Object key, Object value) {
+        if (value instanceof UncomputedUniValue) {
+            UncomputedUniValue uncomputedUniValue = (UncomputedUniValue) value;
+            return uncomputedUniValue.getUni()
+                    .onItem().call(emittedValue -> cache.replaceUniValue(key, emittedValue))
+                    .onFailure().call(() -> cache.removeUncomputedUniValue(key, uncomputedUniValue));
+        } else {
+            return Uni.createFrom().item(value);
         }
     }
 }

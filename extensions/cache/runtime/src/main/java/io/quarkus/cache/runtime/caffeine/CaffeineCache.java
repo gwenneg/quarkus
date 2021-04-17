@@ -4,18 +4,24 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.jboss.logging.Logger;
+
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.quarkus.cache.runtime.AbstractCache;
 import io.quarkus.cache.runtime.CacheException;
 import io.quarkus.cache.runtime.NullValueConverter;
+import io.quarkus.cache.runtime.UncomputedUniValue;
+import io.smallrye.mutiny.Uni;
 
 /**
  * This class is an internal Quarkus cache implementation. Do not use it explicitly from your Quarkus application. The public
  * methods signatures may change without prior notice.
  */
 public class CaffeineCache extends AbstractCache {
+
+    private static final Logger LOGGER = Logger.getLogger(CaffeineCache.class);
 
     private AsyncCache<Object, Object> cache;
 
@@ -71,7 +77,7 @@ public class CaffeineCache extends AbstractCache {
         if (key == null) {
             throw new NullPointerException(NULL_KEYS_NOT_SUPPORTED_MSG);
         }
-        CompletableFuture<Object> newCacheValue = new CompletableFuture<Object>();
+        CompletableFuture<Object> newCacheValue = new CompletableFuture<>();
         CompletableFuture<Object> existingCacheValue = cache.asMap().putIfAbsent(key, newCacheValue);
         if (existingCacheValue == null) {
             try {
@@ -88,7 +94,7 @@ public class CaffeineCache extends AbstractCache {
     }
 
     private CompletableFuture<Object> unwrapCacheValueOrThrowable(CompletableFuture<Object> cacheValue) {
-        return cacheValue.thenApply(new Function<Object, Object>() {
+        return cacheValue.thenApply(new Function<>() {
             @Override
             public Object apply(Object value) {
                 // If there's a throwable encapsulated into a CaffeineComputationThrowable, it must be rethrown.
@@ -117,6 +123,37 @@ public class CaffeineCache extends AbstractCache {
     @Override
     public void invalidateAll() {
         cache.synchronous().invalidateAll();
+    }
+
+    @Override
+    public Uni<Void> replaceUniValue(Object key, Object emittedValue) {
+        return Uni.createFrom().item(() -> {
+            // If the cache no longer contains the key because it was removed, we don't want to put it back.
+            cache.asMap().computeIfPresent(key, (k, currentValue) -> {
+                LOGGER.debugf("Replacing Uni value entry with key [%s] into cache [%s]", key, name);
+                /*
+                 * The following computed value will always replace the current cache value (whether it is an
+                 * UncomputedUniValue or not) if this method is called multiple times with the same key.
+                 */
+                return CompletableFuture.completedFuture(NullValueConverter.toCacheValue(emittedValue));
+            });
+            return null;
+        });
+    }
+
+    @Override
+    public Uni<Void> removeUncomputedUniValue(Object key, UncomputedUniValue uncomputedUniValue) {
+        /*
+         * The cache value associated with the given key will be removed only it is the given UncomputedUniValue.
+         * Emitted Uni items that would be cached will never be removed by this method.
+         */
+        return Uni.createFrom().item(() -> {
+            boolean removed = cache.asMap().remove(key, uncomputedUniValue);
+            if (removed) {
+                LOGGER.debugf("UncomputedUniValue entry with key [%s] removed from cache [%s]", key, name);
+            }
+            return null;
+        });
     }
 
     // For testing purposes only.
