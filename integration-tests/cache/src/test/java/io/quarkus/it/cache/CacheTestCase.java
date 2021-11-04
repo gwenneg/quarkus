@@ -21,9 +21,9 @@ public class CacheTestCase {
 
     @Test
     public void bla() {
-        RestAssured.given().when().get("/expensive-resource/test1").then().statusCode(200);
-        RestAssured.given().when().get("/expensive-resource/test1").then().statusCode(200);
-
+        RestAssured.given().when().get("/expensive-resource/get1").then().statusCode(200);
+        RestAssured.given().when().get("/expensive-resource/get2").then().statusCode(200);
+        RestAssured.given().when().delete("/expensive-resource").then().statusCode(204);
     }
 
     private void runExpensiveRequest() {
