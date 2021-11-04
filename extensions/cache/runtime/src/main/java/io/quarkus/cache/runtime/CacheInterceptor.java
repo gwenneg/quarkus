@@ -41,6 +41,7 @@ public abstract class CacheInterceptor {
                 .orElseGet(new Supplier<CacheInterceptionContext<T>>() {
                     @Override
                     public CacheInterceptionContext<T> get() {
+                        LOGGER.warn("NON ARC CONTEXT");
                         return getNonArcCacheInterceptionContext(invocationContext, interceptorBindingClass, supportsCacheKey);
                     }
                 });
@@ -61,6 +62,7 @@ public abstract class CacheInterceptor {
                     cacheKeyParameterPositions.add(position);
                 }
             } else if (interceptorBindingClass.isInstance(binding)) {
+                LOGGER.warn("BINDING=" + binding);
                 interceptorBindings.add(cast(binding, interceptorBindingClass));
             }
         }
@@ -79,6 +81,7 @@ public abstract class CacheInterceptor {
                     cacheKeyParameterPositions.add(position);
                 }
             } else if (interceptorBindingClass.isInstance(annotation)) {
+                LOGGER.warn("BINDING=" + annotation);
                 interceptorBindings.add(cast(annotation, interceptorBindingClass));
             }
         }
