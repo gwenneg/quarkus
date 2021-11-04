@@ -1,17 +1,22 @@
 package io.quarkus.it.cache;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheKey;
 import io.quarkus.cache.CacheResult;
+import org.jboss.logging.Logger;
 
 @ApplicationScoped
 @Path("/expensive-resource")
 public class ExpensiveResource {
+
+    private static final Logger LOGGER = Logger.getLogger(ExpensiveResource.class);
 
     private int invocations;
 
@@ -31,6 +36,29 @@ public class ExpensiveResource {
     @Path("/invocations")
     public int getInvocations() {
         return invocations;
+    }
+
+    @GET
+    @Path("/get1")
+    @CacheResult(cacheName = "cache1")
+    public String get1() {
+        LOGGER.warn("get1 invoked");
+        return "";
+    }
+
+    @GET
+    @Path("/get2")
+    @CacheResult(cacheName = "cache2")
+    public String get2() {
+        LOGGER.warn("get2 invoked");
+        return "";
+    }
+
+    @DELETE
+    @CacheInvalidateAll(cacheName = "cache1")
+    @CacheInvalidateAll(cacheName = "cache2")
+    public void delete() {
+        LOGGER.warn("invalidation");
     }
 
     public static class ExpensiveResponse {

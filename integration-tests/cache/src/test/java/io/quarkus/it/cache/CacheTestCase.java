@@ -19,6 +19,13 @@ public class CacheTestCase {
         RestAssured.given().when().get("/expensive-resource/invocations").then().statusCode(200).body(is("1"));
     }
 
+    @Test
+    public void bla() {
+        RestAssured.given().when().get("/expensive-resource/test1").then().statusCode(200);
+        RestAssured.given().when().get("/expensive-resource/test1").then().statusCode(200);
+
+    }
+
     private void runExpensiveRequest() {
         RestAssured.given().when().get("/expensive-resource/I/love/Quarkus?foo=bar").then().statusCode(200).body("result",
                 is("I love Quarkus too!"));
