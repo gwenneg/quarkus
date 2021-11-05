@@ -7,10 +7,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+import org.jboss.logging.Logger;
+
 import io.quarkus.cache.CacheInvalidateAll;
 import io.quarkus.cache.CacheKey;
 import io.quarkus.cache.CacheResult;
-import org.jboss.logging.Logger;
 
 @ApplicationScoped
 @Path("/expensive-resource")
