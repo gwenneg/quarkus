@@ -22,6 +22,8 @@ public class CaffeineCacheInfoBuilder {
                     namespaceConfig.maximumSize.ifPresent(size -> cacheInfo.maximumSize = size);
                     namespaceConfig.expireAfterWrite.ifPresent(delay -> cacheInfo.expireAfterWrite = delay);
                     namespaceConfig.expireAfterAccess.ifPresent(delay -> cacheInfo.expireAfterAccess = delay);
+                    cacheInfo.metricsEnabled = namespaceConfig.metrics.enabled;
+                    namespaceConfig.metrics.tags.ifPresent(tags -> cacheInfo.metricsTags = tags);
                 }
                 return cacheInfo;
             }).collect(Collectors.toSet());

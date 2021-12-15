@@ -15,6 +15,10 @@ public class CaffeineCacheInfo {
 
     public Duration expireAfterAccess;
 
+    public boolean metricsEnabled;
+
+    public String[] metricsTags;
+
     @Override
     public int hashCode() {
         return Objects.hash(name);
