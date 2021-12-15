@@ -522,6 +522,11 @@ quarkus.cache.caffeine."bar".maximum-size=1000 <2>
 <1> The `foo` cache is being configured.
 <2> The `bar` cache is being configured.
 
+== Enabling Micrometer metrics
+
+TODO Write something about it!
+How to (conf + pom), performances impact, tags constraints, resulting metrics and output example with Prometheus...
+
 == Annotated beans examples
 
 === Implicit simple cache key

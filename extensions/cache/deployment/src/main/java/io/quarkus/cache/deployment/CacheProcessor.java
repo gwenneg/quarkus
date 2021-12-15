@@ -13,11 +13,13 @@ import static io.quarkus.cache.deployment.CacheDeploymentConstants.INTERCEPTOR_B
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.INTERCEPTOR_BINDING_CONTAINERS;
 import static io.quarkus.cache.deployment.CacheDeploymentConstants.REGISTER_REST_CLIENT;
 import static io.quarkus.deployment.annotations.ExecutionTime.STATIC_INIT;
+import static io.quarkus.runtime.metrics.MetricsFactory.MICROMETER;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -56,6 +58,7 @@ import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.BytecodeTransformerBuildItem;
 import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.deployment.metrics.MetricsCapabilityBuildItem;
 
 class CacheProcessor {
 
@@ -192,14 +195,17 @@ class CacheProcessor {
     @BuildStep
     @Record(STATIC_INIT)
     SyntheticBeanBuildItem configureCacheManagerSyntheticBean(CacheNamesBuildItem cacheNames, CacheConfig config,
-            CaffeineCacheBuildRecorder caffeineRecorder, NoOpCacheBuildRecorder noOpRecorder) {
+            CaffeineCacheBuildRecorder caffeineRecorder, NoOpCacheBuildRecorder noOpRecorder,
+            Optional<MetricsCapabilityBuildItem> metricsCapability) {
 
         Supplier<CacheManager> cacheManagerSupplier;
         if (config.enabled) {
             switch (config.type) {
                 case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
                     Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames.getNames(), config);
-                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos);
+                    boolean micrometerAvailable = metricsCapability.isPresent()
+                            && metricsCapability.get().metricsSupported(MICROMETER);
+                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos, micrometerAvailable);
                     break;
                 default:
                     throw new DeploymentException("Unknown cache type: " + config.type);

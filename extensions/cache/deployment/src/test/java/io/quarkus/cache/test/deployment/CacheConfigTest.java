@@ -1,6 +1,8 @@
 package io.quarkus.cache.test.deployment;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 
@@ -30,10 +32,12 @@ public class CacheConfigTest {
     @Test
     public void testConfig() {
         CaffeineCacheImpl cache = (CaffeineCacheImpl) cacheManager.getCache(CACHE_NAME).get();
-        assertEquals(10, cache.getInitialCapacity());
-        assertEquals(100L, cache.getMaximumSize());
-        assertEquals(Duration.ofSeconds(30L), cache.getExpireAfterWrite());
-        assertEquals(Duration.ofDays(2L), cache.getExpireAfterAccess());
+        assertEquals(10, cache.getCacheInfo().initialCapacity);
+        assertEquals(100L, cache.getCacheInfo().maximumSize);
+        assertEquals(Duration.ofSeconds(30L), cache.getCacheInfo().expireAfterWrite);
+        assertEquals(Duration.ofDays(2L), cache.getCacheInfo().expireAfterAccess);
+        assertTrue(cache.getCacheInfo().metricsEnabled);
+        assertArrayEquals(new String[] { "alpha", "bravo", "charlie", "delta" }, cache.getCacheInfo().metricsTags);
     }
 
     @Path("/test")

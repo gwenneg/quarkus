@@ -1,6 +1,7 @@
 package io.quarkus.cache.runtime.caffeine;
 
-import java.time.Duration;
+import static io.quarkus.cache.runtime.caffeine.CaffeineCacheMetricsInitializer.recordMetrics;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -14,6 +15,8 @@ import org.jboss.logging.Logger;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.stats.ConcurrentStatsCounter;
+import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
 import io.quarkus.cache.CacheException;
 import io.quarkus.cache.CaffeineCache;
@@ -33,34 +36,41 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
 
     private String name;
 
-    private Integer initialCapacity;
+    private CaffeineCacheInfo cacheInfo;
 
-    private Long maximumSize;
+    private StatsCounter statsCounter;
 
-    private Duration expireAfterWrite;
-
-    private Duration expireAfterAccess;
-
-    public CaffeineCacheImpl(CaffeineCacheInfo cacheInfo) {
+    public CaffeineCacheImpl(CaffeineCacheInfo cacheInfo, boolean micrometerAvailable) {
         this.name = cacheInfo.name;
+        this.cacheInfo = cacheInfo;
         Caffeine<Object, Object> builder = Caffeine.newBuilder();
         if (cacheInfo.initialCapacity != null) {
-            this.initialCapacity = cacheInfo.initialCapacity;
             builder.initialCapacity(cacheInfo.initialCapacity);
         }
         if (cacheInfo.maximumSize != null) {
-            this.maximumSize = cacheInfo.maximumSize;
             builder.maximumSize(cacheInfo.maximumSize);
         }
         if (cacheInfo.expireAfterWrite != null) {
-            this.expireAfterWrite = cacheInfo.expireAfterWrite;
             builder.expireAfterWrite(cacheInfo.expireAfterWrite);
         }
         if (cacheInfo.expireAfterAccess != null) {
-            this.expireAfterAccess = cacheInfo.expireAfterAccess;
             builder.expireAfterAccess(cacheInfo.expireAfterAccess);
         }
+        if (micrometerAvailable && cacheInfo.metricsEnabled) {
+            statsCounter = new ConcurrentStatsCounter();
+            builder.recordStats(() -> statsCounter);
+        }
         cache = builder.buildAsync();
+        if (cacheInfo.metricsEnabled) {
+            if (micrometerAvailable) {
+                recordMetrics(cache, cacheInfo.name, cacheInfo.metricsTags);
+            } else {
+                LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
+                        + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by " +
+                        "adding a Micrometer extension to the pom.xml file.",
+                        cacheInfo.name);
+            }
+        }
     }
 
     @Override
@@ -89,7 +99,7 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
      * Returns a {@link CompletableFuture} holding the cache value identified by {@code key}, obtaining that value from
      * {@code valueLoader} if necessary. The value computation is done synchronously on the calling thread and the
      * {@link CompletableFuture} is immediately completed before being returned.
-     * 
+     *
      * @param key cache key
      * @param valueLoader function used to compute the cache value if {@code key} is not already associated with a value
      * @return a {@link CompletableFuture} holding the cache value
@@ -99,6 +109,9 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
         CompletableFuture<Object> newCacheValue = new CompletableFuture<>();
         CompletableFuture<Object> existingCacheValue = cache.asMap().putIfAbsent(key, newCacheValue);
         if (existingCacheValue == null) {
+            if (statsCounter != null) {
+                statsCounter.recordMisses(1);
+            }
             try {
                 Object value = valueLoader.apply(key);
                 newCacheValue.complete(NullValueConverter.toCacheValue(value));
@@ -108,6 +121,9 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
             }
             return unwrapCacheValueOrThrowable(newCacheValue);
         } else {
+            if (statsCounter != null) {
+                statsCounter.recordHits(1);
+            }
             return unwrapCacheValueOrThrowable(existingCacheValue);
         }
     }
@@ -176,23 +192,8 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
     }
 
     // For testing purposes only.
-    public Integer getInitialCapacity() {
-        return initialCapacity;
-    }
-
-    // For testing purposes only.
-    public Long getMaximumSize() {
-        return maximumSize;
-    }
-
-    // For testing purposes only.
-    public Duration getExpireAfterWrite() {
-        return expireAfterWrite;
-    }
-
-    // For testing purposes only.
-    public Duration getExpireAfterAccess() {
-        return expireAfterAccess;
+    public CaffeineCacheInfo getCacheInfo() {
+        return cacheInfo;
     }
 
     public long getSize() {

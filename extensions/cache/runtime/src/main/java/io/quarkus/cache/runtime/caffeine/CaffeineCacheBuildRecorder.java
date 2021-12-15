@@ -20,7 +20,7 @@ public class CaffeineCacheBuildRecorder {
 
     private static final Logger LOGGER = Logger.getLogger(CaffeineCacheBuildRecorder.class);
 
-    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos) {
+    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, boolean micrometerAvailable) {
         Objects.requireNonNull(cacheInfos);
         return new Supplier<CacheManager>() {
             @Override
@@ -37,7 +37,7 @@ public class CaffeineCacheBuildRecorder {
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
                                     cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess);
                         }
-                        CaffeineCache cache = new CaffeineCacheImpl(cacheInfo);
+                        CaffeineCache cache = new CaffeineCacheImpl(cacheInfo, micrometerAvailable);
                         caches.put(cacheInfo.name, cache);
                     }
                     return new CacheManagerImpl(caches);
