@@ -20,7 +20,8 @@ public class CaffeineCacheBuildRecorder {
 
     private static final Logger LOGGER = Logger.getLogger(CaffeineCacheBuildRecorder.class);
 
-    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, MetricsInitializer metricsInitializer) {
+    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos,
+            MetricsInitializer metricsInitializer) {
         Objects.requireNonNull(cacheInfos);
         return new Supplier<CacheManager>() {
             @Override
@@ -35,14 +36,17 @@ public class CaffeineCacheBuildRecorder {
                             LOGGER.debugf(
                                     "Building Caffeine cache [%s] with [initialCapacity=%s], [maximumSize=%s], [expireAfterWrite=%s], [expireAfterAccess=%s], [metricsEnabled=%s] and [metricsTags=%s]",
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
-                                    cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess, cacheInfo.metricsEnabled, cacheInfo.metricsTags);
+                                    cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess, cacheInfo.metricsEnabled,
+                                    cacheInfo.metricsTags);
                         }
                         boolean metricsEnabled = metricsInitializer.metricsEnabled() && cacheInfo.metricsEnabled;
                         CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, metricsEnabled);
                         if (metricsEnabled) {
                             metricsInitializer.recordMetrics(cache.cache, cacheInfo.name, cacheInfo.metricsTags);
                         } else if (metricsInitializer.metricsEnabled()) {
-                            LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. This warning can be fixed by disabling the cache metrics in the configuration or by adding a Micrometer extension to the pom.xml file.", cacheInfo.name);
+                            LOGGER.warnf(
+                                    "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. This warning can be fixed by disabling the cache metrics in the configuration or by adding a Micrometer extension to the pom.xml file.",
+                                    cacheInfo.name);
                         }
                         caches.put(cacheInfo.name, cache);
                     }

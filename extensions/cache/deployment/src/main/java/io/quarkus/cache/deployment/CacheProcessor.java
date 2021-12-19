@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
-import io.quarkus.cache.runtime.caffeine.metrics.MetricsInitializer;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationTarget.Kind;
@@ -51,6 +50,7 @@ import io.quarkus.cache.runtime.CacheInvalidateInterceptor;
 import io.quarkus.cache.runtime.CacheResultInterceptor;
 import io.quarkus.cache.runtime.caffeine.CaffeineCacheBuildRecorder;
 import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.runtime.caffeine.metrics.MetricsInitializer;
 import io.quarkus.cache.runtime.caffeine.metrics.MicrometerMetricsInitializer;
 import io.quarkus.cache.runtime.caffeine.metrics.NoOpMetricsInitializer;
 import io.quarkus.cache.runtime.noop.NoOpCacheBuildRecorder;
