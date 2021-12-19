@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import org.jboss.logging.Logger;
 
 import io.quarkus.cache.Cache;
@@ -43,8 +45,15 @@ public class CaffeineCacheBuildRecorder {
                             if (micrometerAvailable) {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, true);
                                 caches.put(cacheInfo.name, cache);
-                                init.recordMetrics(cache.cache, cacheInfo.name,
-                                        cacheInfo.metricsTags);
+
+                                if (cacheInfo.metricsTags == null) {
+                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name);
+                                } else {
+                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name, cacheInfo.metricsTags);
+                                }
+
+                                //init.recordMetrics(cache.cache, cacheInfo.name,
+                                        //cacheInfo.metricsTags);
                             } else {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
                                 caches.put(cacheInfo.name, cache);
