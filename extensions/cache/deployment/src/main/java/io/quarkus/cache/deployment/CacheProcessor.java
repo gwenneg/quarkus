@@ -50,6 +50,8 @@ import io.quarkus.cache.runtime.CacheInvalidateInterceptor;
 import io.quarkus.cache.runtime.CacheResultInterceptor;
 import io.quarkus.cache.runtime.caffeine.CaffeineCacheBuildRecorder;
 import io.quarkus.cache.runtime.caffeine.CaffeineCacheInfo;
+import io.quarkus.cache.runtime.caffeine.metrics.MicrometerMetricsInitializer;
+import io.quarkus.cache.runtime.caffeine.metrics.NoOpMetricsInitializer;
 import io.quarkus.cache.runtime.noop.NoOpCacheBuildRecorder;
 import io.quarkus.deployment.Feature;
 import io.quarkus.deployment.annotations.BuildProducer;
@@ -205,7 +207,8 @@ class CacheProcessor {
                     Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames.getNames(), config);
                     boolean micrometerAvailable = metricsCapability.isPresent()
                             && metricsCapability.get().metricsSupported(MICROMETER);
-                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos, micrometerAvailable);
+                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos, micrometerAvailable,
+                            micrometerAvailable ? new MicrometerMetricsInitializer() : new NoOpMetricsInitializer());
                     break;
                 default:
                     throw new DeploymentException("Unknown cache type: " + config.type);

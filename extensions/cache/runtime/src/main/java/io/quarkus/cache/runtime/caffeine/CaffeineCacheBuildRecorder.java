@@ -12,6 +12,7 @@ import org.jboss.logging.Logger;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.runtime.CacheManagerImpl;
+import io.quarkus.cache.runtime.caffeine.metrics.MetricsInitializer;
 import io.quarkus.runtime.annotations.Recorder;
 
 @Recorder
@@ -19,7 +20,8 @@ public class CaffeineCacheBuildRecorder {
 
     private static final Logger LOGGER = Logger.getLogger(CaffeineCacheBuildRecorder.class);
 
-    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, boolean micrometerAvailable) {
+    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, boolean micrometerAvailable,
+            MetricsInitializer init) {
         Objects.requireNonNull(cacheInfos);
         return new Supplier<CacheManager>() {
             @Override
@@ -36,11 +38,12 @@ public class CaffeineCacheBuildRecorder {
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
                                     cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess);
                         }
+                        // TODO improve
                         if (cacheInfo.metricsEnabled) {
                             if (micrometerAvailable) {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, true);
                                 caches.put(cacheInfo.name, cache);
-                                CaffeineCacheMetricsInitializer.recordMetrics(cache.cache, cacheInfo.name,
+                                init.recordMetrics(cache.cache, cacheInfo.name,
                                         cacheInfo.metricsTags);
                             } else {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);

@@ -1,13 +1,14 @@
-package io.quarkus.cache.runtime.caffeine;
+package io.quarkus.cache.runtime.caffeine.metrics;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
-public class CaffeineCacheMetricsInitializer {
+public class MicrometerMetricsInitializer implements MetricsInitializer {
 
-    public static void recordMetrics(AsyncCache<Object, Object> cache, String cacheName, String[] tags) {
+    @Override
+    public void recordMetrics(AsyncCache<Object, Object> cache, String cacheName, String[] tags) {
         if (tags == null) {
             CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache, cacheName);
         } else {
