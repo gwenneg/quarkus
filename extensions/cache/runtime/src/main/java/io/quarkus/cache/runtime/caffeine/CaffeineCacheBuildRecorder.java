@@ -52,6 +52,9 @@ public class CaffeineCacheBuildRecorder {
                                                 "adding a Micrometer extension to the pom.xml file.",
                                         cacheInfo.name);
                             }
+                        } else {
+                            CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
+                            caches.put(cacheInfo.name, cache);
                         }
                     }
                     return new CacheManagerImpl(caches);
