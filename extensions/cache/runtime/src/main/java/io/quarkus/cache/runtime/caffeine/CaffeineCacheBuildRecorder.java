@@ -40,12 +40,15 @@ public class CaffeineCacheBuildRecorder {
                             if (micrometerAvailable) {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, true);
                                 caches.put(cacheInfo.name, cache);
-                                CaffeineCacheMetricsInitializer.recordMetrics(cache.cache, cacheInfo.name, cacheInfo.metricsTags);
+                                CaffeineCacheMetricsInitializer.recordMetrics(cache.cache, cacheInfo.name,
+                                        cacheInfo.metricsTags);
                             } else {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
                                 caches.put(cacheInfo.name, cache);
-                                LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
-                                                + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by " +
+                                LOGGER.warnf(
+                                        "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
+                                                + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by "
+                                                +
                                                 "adding a Micrometer extension to the pom.xml file.",
                                         cacheInfo.name);
                             }
