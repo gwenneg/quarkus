@@ -11,7 +11,6 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
-import io.quarkus.cache.CaffeineCache;
 import io.quarkus.cache.runtime.CacheManagerImpl;
 import io.quarkus.runtime.annotations.Recorder;
 
@@ -37,8 +36,20 @@ public class CaffeineCacheBuildRecorder {
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
                                     cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess);
                         }
-                        CaffeineCache cache = new CaffeineCacheImpl(cacheInfo, micrometerAvailable);
-                        caches.put(cacheInfo.name, cache);
+                        if (cacheInfo.metricsEnabled) {
+                            if (micrometerAvailable) {
+                                CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, true);
+                                caches.put(cacheInfo.name, cache);
+                                CaffeineCacheMetricsInitializer.recordMetrics(cache.cache, cacheInfo.name, cacheInfo.metricsTags);
+                            } else {
+                                CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
+                                caches.put(cacheInfo.name, cache);
+                                LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
+                                                + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by " +
+                                                "adding a Micrometer extension to the pom.xml file.",
+                                        cacheInfo.name);
+                            }
+                        }
                     }
                     return new CacheManagerImpl(caches);
                 }

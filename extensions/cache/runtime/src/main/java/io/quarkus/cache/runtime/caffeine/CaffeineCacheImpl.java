@@ -1,7 +1,5 @@
 package io.quarkus.cache.runtime.caffeine;
 
-import static io.quarkus.cache.runtime.caffeine.CaffeineCacheMetricsInitializer.recordMetrics;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -32,7 +30,7 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
 
     private static final Logger LOGGER = Logger.getLogger(CaffeineCacheImpl.class);
 
-    private AsyncCache<Object, Object> cache;
+    AsyncCache<Object, Object> cache;
 
     private String name;
 
@@ -40,7 +38,7 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
 
     private StatsCounter statsCounter;
 
-    public CaffeineCacheImpl(CaffeineCacheInfo cacheInfo, boolean micrometerAvailable) {
+    public CaffeineCacheImpl(CaffeineCacheInfo cacheInfo, boolean recordStats) {
         this.name = cacheInfo.name;
         this.cacheInfo = cacheInfo;
         Caffeine<Object, Object> builder = Caffeine.newBuilder();
@@ -56,21 +54,11 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
         if (cacheInfo.expireAfterAccess != null) {
             builder.expireAfterAccess(cacheInfo.expireAfterAccess);
         }
-        if (micrometerAvailable && cacheInfo.metricsEnabled) {
+        if (recordStats) {
             statsCounter = new ConcurrentStatsCounter();
             builder.recordStats(() -> statsCounter);
         }
         cache = builder.buildAsync();
-        if (cacheInfo.metricsEnabled) {
-            if (micrometerAvailable) {
-                recordMetrics(cache, cacheInfo.name, cacheInfo.metricsTags);
-            } else {
-                LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
-                        + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by " +
-                        "adding a Micrometer extension to the pom.xml file.",
-                        cacheInfo.name);
-            }
-        }
     }
 
     @Override
