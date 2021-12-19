@@ -34,7 +34,9 @@ public class CaffeineCacheBuildRecorder {
                     for (CaffeineCacheInfo cacheInfo : cacheInfos) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debugf(
-                                    "Building Caffeine cache [%s] with [initialCapacity=%s], [maximumSize=%s], [expireAfterWrite=%s], [expireAfterAccess=%s], [metricsEnabled=%s] and [metricsTags=%s]",
+                                    "Building Caffeine cache [%s] with [initialCapacity=%s], [maximumSize=%s], [expireAfterWrite=%s], "
+                                            +
+                                            "[expireAfterAccess=%s], [metricsEnabled=%s] and [metricsTags=%s]",
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
                                     cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess, cacheInfo.metricsEnabled,
                                     cacheInfo.metricsTags);
@@ -43,9 +45,13 @@ public class CaffeineCacheBuildRecorder {
                         CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, metricsEnabled);
                         if (metricsEnabled) {
                             metricsInitializer.recordMetrics(cache.cache, cacheInfo.name, cacheInfo.metricsTags);
-                        } else if (metricsInitializer.metricsEnabled()) {
+                        } else if (cacheInfo.metricsEnabled) {
                             LOGGER.warnf(
-                                    "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. This warning can be fixed by disabling the cache metrics in the configuration or by adding a Micrometer extension to the pom.xml file.",
+                                    "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. "
+                                            +
+                                            "This warning can be fixed by disabling the cache metrics in the configuration or by adding a Micrometer "
+                                            +
+                                            "extension to the pom.xml file.",
                                     cacheInfo.name);
                         }
                         caches.put(cacheInfo.name, cache);
