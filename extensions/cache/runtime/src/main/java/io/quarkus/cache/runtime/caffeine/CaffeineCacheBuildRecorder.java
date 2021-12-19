@@ -9,8 +9,6 @@ import java.util.function.Supplier;
 
 import org.jboss.logging.Logger;
 
-import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.runtime.CacheManagerImpl;
@@ -22,8 +20,7 @@ public class CaffeineCacheBuildRecorder {
 
     private static final Logger LOGGER = Logger.getLogger(CaffeineCacheBuildRecorder.class);
 
-    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, boolean micrometerAvailable,
-            MetricsInitializer init) {
+    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos, MetricsInitializer metricsInitializer) {
         Objects.requireNonNull(cacheInfos);
         return new Supplier<CacheManager>() {
             @Override
@@ -36,39 +33,18 @@ public class CaffeineCacheBuildRecorder {
                     for (CaffeineCacheInfo cacheInfo : cacheInfos) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debugf(
-                                    "Building Caffeine cache [%s] with [initialCapacity=%s], [maximumSize=%s], [expireAfterWrite=%s] and [expireAfterAccess=%s]",
+                                    "Building Caffeine cache [%s] with [initialCapacity=%s], [maximumSize=%s], [expireAfterWrite=%s], [expireAfterAccess=%s], [metricsEnabled=%s] and [metricsTags=%s]",
                                     cacheInfo.name, cacheInfo.initialCapacity, cacheInfo.maximumSize,
-                                    cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess);
+                                    cacheInfo.expireAfterWrite, cacheInfo.expireAfterAccess, cacheInfo.metricsEnabled, cacheInfo.metricsTags);
                         }
-                        // TODO improve
-                        if (cacheInfo.metricsEnabled) {
-                            if (micrometerAvailable) {
-                                CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, true);
-                                caches.put(cacheInfo.name, cache);
-
-                                if (cacheInfo.metricsTags == null) {
-                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name);
-                                } else {
-                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name,
-                                            cacheInfo.metricsTags);
-                                }
-
-                                //init.recordMetrics(cache.cache, cacheInfo.name,
-                                //cacheInfo.metricsTags);
-                            } else {
-                                CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
-                                caches.put(cacheInfo.name, cache);
-                                LOGGER.warnf(
-                                        "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer "
-                                                + "extension. This warning can be fixed by disabling the cache metrics in the configuration or by "
-                                                +
-                                                "adding a Micrometer extension to the pom.xml file.",
-                                        cacheInfo.name);
-                            }
-                        } else {
-                            CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
-                            caches.put(cacheInfo.name, cache);
+                        boolean metricsEnabled = metricsInitializer.metricsEnabled() && cacheInfo.metricsEnabled;
+                        CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, metricsEnabled);
+                        if (metricsEnabled) {
+                            metricsInitializer.recordMetrics(cache.cache, cacheInfo.name, cacheInfo.metricsTags);
+                        } else if (metricsInitializer.metricsEnabled()) {
+                            LOGGER.warnf("Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. This warning can be fixed by disabling the cache metrics in the configuration or by adding a Micrometer extension to the pom.xml file.", cacheInfo.name);
                         }
+                        caches.put(cacheInfo.name, cache);
                     }
                     return new CacheManagerImpl(caches);
                 }

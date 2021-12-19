@@ -4,5 +4,7 @@ import com.github.benmanes.caffeine.cache.AsyncCache;
 
 public interface MetricsInitializer {
 
+    boolean metricsEnabled();
+
     void recordMetrics(AsyncCache<Object, Object> cache, String cacheName, String[] tags);
 }

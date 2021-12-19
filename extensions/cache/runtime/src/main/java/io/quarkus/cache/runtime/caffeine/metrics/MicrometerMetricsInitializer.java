@@ -8,6 +8,11 @@ import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 public class MicrometerMetricsInitializer implements MetricsInitializer {
 
     @Override
+    public boolean metricsEnabled() {
+        return true;
+    }
+
+    @Override
     public void recordMetrics(AsyncCache<Object, Object> cache, String cacheName, String[] tags) {
         if (tags == null) {
             CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache, cacheName);

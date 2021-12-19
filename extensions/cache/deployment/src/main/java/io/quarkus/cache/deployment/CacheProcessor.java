@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
 
+import io.quarkus.cache.runtime.caffeine.metrics.MetricsInitializer;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationTarget.Kind;
@@ -205,10 +206,8 @@ class CacheProcessor {
             switch (config.type) {
                 case CacheDeploymentConstants.CAFFEINE_CACHE_TYPE:
                     Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames.getNames(), config);
-                    boolean micrometerAvailable = metricsCapability.isPresent()
-                            && metricsCapability.get().metricsSupported(MICROMETER);
-                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos, micrometerAvailable,
-                            micrometerAvailable ? new MicrometerMetricsInitializer() : new NoOpMetricsInitializer());
+                    MetricsInitializer metricsInitializer = getMetricsInitializer(metricsCapability);
+                    cacheManagerSupplier = caffeineRecorder.getCacheManagerSupplier(cacheInfos, metricsInitializer);
                     break;
                 default:
                     throw new DeploymentException("Unknown cache type: " + config.type);
@@ -221,6 +220,13 @@ class CacheProcessor {
                 .scope(ApplicationScoped.class)
                 .supplier(cacheManagerSupplier)
                 .done();
+    }
+
+    private MetricsInitializer getMetricsInitializer(Optional<MetricsCapabilityBuildItem> metricsCapability) {
+        if (metricsCapability.isPresent() && metricsCapability.get().metricsSupported(MICROMETER)) {
+            new MicrometerMetricsInitializer();
+        }
+        return new NoOpMetricsInitializer();
     }
 
     @BuildStep
