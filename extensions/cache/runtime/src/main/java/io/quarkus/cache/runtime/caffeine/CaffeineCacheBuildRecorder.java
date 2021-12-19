@@ -7,10 +7,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import org.jboss.logging.Logger;
 
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.runtime.CacheManagerImpl;
@@ -49,11 +49,12 @@ public class CaffeineCacheBuildRecorder {
                                 if (cacheInfo.metricsTags == null) {
                                     CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name);
                                 } else {
-                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name, cacheInfo.metricsTags);
+                                    CaffeineCacheMetrics.monitor(Metrics.globalRegistry, cache.cache, cacheInfo.name,
+                                            cacheInfo.metricsTags);
                                 }
 
                                 //init.recordMetrics(cache.cache, cacheInfo.name,
-                                        //cacheInfo.metricsTags);
+                                //cacheInfo.metricsTags);
                             } else {
                                 CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, false);
                                 caches.put(cacheInfo.name, cache);
