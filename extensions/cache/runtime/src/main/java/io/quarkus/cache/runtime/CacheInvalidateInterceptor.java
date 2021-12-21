@@ -36,7 +36,12 @@ public class CacheInvalidateInterceptor extends CacheInterceptor {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debugf("Invalidating entry with key [%s] from cache [%s]", key, binding.cacheName());
                 }
-                cache.invalidate(key).await().indefinitely();
+                if (cache instanceof LocalCache) {
+                    ((LocalCache) cache).invalidateLocal(key);
+                } else {
+                    // TODO Deal with that case (which is impossible for now) differently...
+                    throw new UnsupportedOperationException();
+                }
             }
         }
         return invocationContext.proceed();

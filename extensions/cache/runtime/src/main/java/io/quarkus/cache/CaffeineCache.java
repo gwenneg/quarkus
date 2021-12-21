@@ -2,7 +2,9 @@ package io.quarkus.cache;
 
 import java.util.Set;
 
-public interface CaffeineCache extends Cache {
+import io.quarkus.cache.runtime.LocalCache;
+
+public interface CaffeineCache extends LocalCache {
 
     /**
      * Returns an unmodifiable {@link Set} view of the keys contained in this cache. If the cache entries are modified while an

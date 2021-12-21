@@ -137,10 +137,15 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
         return Uni.createFrom().item(new Supplier<Void>() {
             @Override
             public Void get() {
-                cache.synchronous().invalidate(key);
+                invalidateLocal(key);
                 return null;
             }
         });
+    }
+
+    @Override
+    public void invalidateLocal(Object key) {
+        cache.synchronous().invalidate(key);
     }
 
     @Override
@@ -148,10 +153,15 @@ public class CaffeineCacheImpl extends AbstractCache implements CaffeineCache {
         return Uni.createFrom().item(new Supplier<Void>() {
             @Override
             public Void get() {
-                cache.synchronous().invalidateAll();
+                invalidateAllLocal();
                 return null;
             }
         });
+    }
+
+    @Override
+    public void invalidateAllLocal() {
+        cache.synchronous().invalidateAll();
     }
 
     @Override

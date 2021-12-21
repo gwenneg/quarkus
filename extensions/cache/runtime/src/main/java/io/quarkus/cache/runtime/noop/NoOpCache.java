@@ -4,13 +4,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.quarkus.cache.runtime.AbstractCache;
+import io.quarkus.cache.runtime.LocalCache;
 import io.smallrye.mutiny.Uni;
 
 /**
  * This class is an internal Quarkus cache implementation. Do not use it explicitly from your Quarkus application. The public
  * methods signatures may change without prior notice.
  */
-public class NoOpCache extends AbstractCache {
+public class NoOpCache extends AbstractCache implements LocalCache {
 
     private static final String NAME = NoOpCache.class.getName();
 
@@ -35,8 +36,16 @@ public class NoOpCache extends AbstractCache {
     }
 
     @Override
+    public void invalidateLocal(Object key) {
+    }
+
+    @Override
     public Uni<Void> invalidateAll() {
         return Uni.createFrom().voidItem();
+    }
+
+    @Override
+    public void invalidateAllLocal() {
     }
 
     @Override
