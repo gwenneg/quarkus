@@ -31,6 +31,7 @@ import javax.enterprise.inject.spi.DeploymentException;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.AnnotationTarget.Kind;
+import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.MethodInfo;
@@ -44,6 +45,7 @@ import io.quarkus.arc.deployment.UnremovableBeanBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
 import io.quarkus.cache.CacheManager;
 import io.quarkus.cache.deployment.exception.ClassTargetException;
+import io.quarkus.cache.deployment.exception.KeyGeneratorConstructorException;
 import io.quarkus.cache.deployment.exception.PrivateMethodTargetException;
 import io.quarkus.cache.deployment.exception.UnsupportedRepeatedAnnotationException;
 import io.quarkus.cache.deployment.exception.VoidReturnTypeTargetException;
@@ -87,12 +89,18 @@ class CacheProcessor {
     @BuildStep
     void validateCacheAnnotationsAndProduceCacheNames(CombinedIndexBuildItem combinedIndex,
             List<AdditionalCacheNameBuildItem> additionalCacheNames, BuildProducer<ValidationErrorBuildItem> validationErrors,
-            BuildProducer<CacheNamesBuildItem> cacheNames) {
+            BuildProducer<CacheNamesBuildItem> cacheNames, BuildProducer<UnremovableBeanBuildItem> unremovableBeans) {
 
         // Validation errors produced by this build step.
         List<Throwable> throwables = new ArrayList<>();
         // Cache names produced by this build step.
         Set<String> names = new HashSet<>();
+        /*
+         * The cache key generators can be injected as CDI beans. ArC may consider these beans unused and remove them which is
+         * why they need to be marked as unremovable. This set is used to collect the generators types that will later be used
+         * to produce an UnremovableBeanBuildItem.
+         */
+        Set<DotName> keyGenerators = new HashSet<>();
 
         /*
          * First, for each non-repeated cache interceptor binding:
@@ -102,6 +110,7 @@ class CacheProcessor {
         for (DotName bindingName : INTERCEPTOR_BINDINGS) {
             for (AnnotationInstance binding : combinedIndex.getIndex().getAnnotations(bindingName)) {
                 throwables.addAll(validateInterceptorBindingTarget(binding, binding.target()));
+                findCacheKeyGenerator(binding, binding.target()).ifPresent(keyGenerators::add);
                 if (binding.target().kind() == METHOD) {
                     /*
                      * Cache names from the interceptor bindings placed on cache interceptors must not be collected to prevent
@@ -117,6 +126,7 @@ class CacheProcessor {
             for (AnnotationInstance container : combinedIndex.getIndex().getAnnotations(containerName)) {
                 for (AnnotationInstance binding : container.value("value").asNestedArray()) {
                     throwables.addAll(validateInterceptorBindingTarget(binding, container.target()));
+                    findCacheKeyGenerator(binding, container.target()).ifPresent(keyGenerators::add);
                     names.add(binding.value(CACHE_NAME_PARAM).asString());
                 }
                 /*
@@ -151,9 +161,20 @@ class CacheProcessor {
         for (AdditionalCacheNameBuildItem additionalCacheName : additionalCacheNames) {
             names.add(additionalCacheName.getName());
         }
+        cacheNames.produce(new CacheNamesBuildItem(names));
+
+        if (!keyGenerators.isEmpty()) {
+            // Key generators must have a default constructor.
+            for (DotName keyGenClassName : keyGenerators) {
+                ClassInfo keyGenClassInfo = combinedIndex.getIndex().getClassByName(keyGenClassName);
+                if (!keyGenClassInfo.hasNoArgsConstructor()) {
+                    throwables.add(new KeyGeneratorConstructorException(keyGenClassInfo));
+                }
+            }
+            unremovableBeans.produce(UnremovableBeanBuildItem.beanTypes(keyGenerators.toArray(new DotName[0])));
+        }
 
         validationErrors.produce(new ValidationErrorBuildItem(throwables.toArray(new Throwable[0])));
-        cacheNames.produce(new CacheNamesBuildItem(names));
     }
 
     private List<Throwable> validateInterceptorBindingTarget(AnnotationInstance binding, AnnotationTarget target) {
@@ -184,6 +205,16 @@ class CacheProcessor {
                 throw new DeploymentException("Unexpected cache interceptor binding target: " + target.kind());
         }
         return throwables;
+    }
+
+    private Optional<DotName> findCacheKeyGenerator(AnnotationInstance binding, AnnotationTarget target) {
+        if (target.kind() == METHOD && (CACHE_RESULT.equals(binding.name()) || CACHE_INVALIDATE.equals(binding.name()))) {
+            AnnotationValue keyGenerator = binding.value("keyGenerator");
+            if (keyGenerator != null) {
+                return Optional.of(keyGenerator.asClass().name());
+            }
+        }
+        return Optional.empty();
     }
 
     @BuildStep
