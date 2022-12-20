@@ -3,7 +3,6 @@ package io.quarkus.cache.runtime.caffeine;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -11,18 +10,16 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
+import io.quarkus.cache.runtime.CacheConfig;
 import io.quarkus.cache.runtime.CacheManagerImpl;
-import io.quarkus.cache.runtime.caffeine.metrics.MetricsInitializer;
-import io.quarkus.runtime.annotations.Recorder;
 
-@Recorder
-public class CaffeineCacheBuildRecorder {
+public class CaffeineCacheManagerBuilder {
 
-    private static final Logger LOGGER = Logger.getLogger(CaffeineCacheBuildRecorder.class);
+    private static final Logger LOGGER = Logger.getLogger(CaffeineCacheManagerBuilder.class);
 
-    public Supplier<CacheManager> getCacheManagerSupplier(Set<CaffeineCacheInfo> cacheInfos,
-            MetricsInitializer metricsInitializer) {
-        Objects.requireNonNull(cacheInfos);
+    public static Supplier<CacheManager> build(Set<String> cacheNames, CacheConfig cacheConfig,
+            boolean micrometerSupported) {
+        Set<CaffeineCacheInfo> cacheInfos = CaffeineCacheInfoBuilder.build(cacheNames, cacheConfig);
         return new Supplier<CacheManager>() {
             @Override
             public CacheManager get() {
@@ -44,10 +41,10 @@ public class CaffeineCacheBuildRecorder {
                          * - the application depends on a quarkus-micrometer-registry-* extension
                          * - the metrics are enabled for this cache from the Quarkus configuration
                          */
-                        boolean recordMetrics = metricsInitializer.metricsEnabled() && cacheInfo.metricsEnabled;
+                        boolean recordMetrics = micrometerSupported && cacheInfo.metricsEnabled;
                         CaffeineCacheImpl cache = new CaffeineCacheImpl(cacheInfo, recordMetrics);
                         if (recordMetrics) {
-                            metricsInitializer.recordMetrics(cache.cache, cacheInfo.name);
+                            MicrometerMetricsInitializer.recordMetrics(cache.cache, cacheInfo.name);
                         } else if (cacheInfo.metricsEnabled) {
                             LOGGER.warnf(
                                     "Metrics won't be recorded for cache '%s' because the application does not depend on a Micrometer extension. "
